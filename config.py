@@ -1,6 +1,6 @@
 class Config:
     data_path = "./figures"
-    model_path = ""#./figures/checkpoint/model_350.ckpt"
+    model_path = "./figures/checkpoint/model_20.ckpt"
     output_path = "./results"
 
     img_size = 424
@@ -11,6 +11,6 @@ class Config:
 
     learning_rate = 0.0002
     beta1 = 0.5
-    max_epoch = 20
+    max_epoch = 200
     L1_lambda = 100
     save_per_epoch=5

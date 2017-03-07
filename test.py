@@ -35,7 +35,7 @@ def test():
 
     with tf.Session() as sess:
         saver.restore(sess, conf.model_path)
-        test_data = data["train"]
+        test_data = data["test"]
         test_count = 0
         print(np.array(test_data).shape)
         for img, cond in test_data:
@@ -45,7 +45,7 @@ def test():
             gen_img = gen_img.reshape(gen_img.shape[1:-1])
             gen_img = (gen_img + 1.) * 127.5
             image = np.concatenate((img, cond, gen_img), axis=1).astype(np.int)
-            imsave(image, "./test_on_training_imgs" + "/%d.jpg" % test_count)
+            imsave(image, "./test" + "/%d.jpg" % test_count)
 
 if __name__ == "__main__":
     test()
