@@ -9,17 +9,21 @@ class CGAN(object):
     def __init__(self):
         self.image = tf.placeholder(tf.float32, shape=(1,conf.img_size, conf.img_size, conf.img_channel))
         self.cond = tf.placeholder(tf.float32, shape=(1,conf.img_size, conf.img_size, conf.img_channel))
-
         self.gen_img = self.generator(self.cond)
 
-        pos = self.discriminator(self.image, self.cond, False)
-        neg = self.discriminator(self.gen_img, self.cond, True)
+        self.image_00 = tf.slice(self.image, [0, 187, 187, 0], [1, 50, 50, 1])
+        self.cond_00 = tf.slice(self.cond, [0, 187, 187, 0], [1, 50, 50, 1])
+        self.g_img_00 = tf.slice(self.gen_img, [0, 187, 187, 0], [1, 50, 50, 1])
+
+        pos = self.discriminator(self.image_00, self.cond_00, False)
+        neg = self.discriminator(self.g_img_00, self.cond_00, True)
         pos_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pos, labels=tf.ones_like(pos)))
         neg_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.zeros_like(neg)))
 
         self.d_loss = pos_loss + neg_loss
         self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.ones_like(neg))) + \
-                      conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img))
+                      0.01 * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
+                      conf.L1_lambda * tf.reduce_mean(tf.abs(self.image_00 - self.g_img_00))
 
         t_vars = tf.trainable_variables()
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
