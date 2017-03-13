@@ -4,7 +4,7 @@ class Config:
     save_path = "./model"
 
     #if you are not going to train from the very beginning, change this path to the existing model path
-    model_path = "./model/model.ckpt"
+    model_path = ""#./model/model.ckpt"
 
     start_epoch = 0
     output_path = "./result"

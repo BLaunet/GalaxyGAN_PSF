@@ -176,15 +176,15 @@ def roou():
         MIN = -0.1
 
 
-        figure_original[figure_original<MIN]=MIN
-        figure_original[figure_original>MAX]=MAX
+#        figure_original[figure_original<MIN]=MIN
+#        figure_original[figure_original>MAX]=MAX
 
-        figure_with_PSF[figure_with_PSF<MIN]=MIN
-        figure_with_PSF[figure_with_PSF>MAX]=MAX
+#        figure_with_PSF[figure_with_PSF<MIN]=MIN
+#        figure_with_PSF[figure_with_PSF>MAX]=MAX
 
         # normalize figures
-        figure_original = (figure_original-MIN)/(MAX-MIN)
-        figure_with_PSF = (figure_with_PSF-MIN)/(MAX-MIN)
+#        figure_original = (figure_original-MIN)/(MAX-MIN)
+#        figure_with_PSF = (figure_with_PSF-MIN)/(MAX-MIN)
 
 
         # asinh scaling
