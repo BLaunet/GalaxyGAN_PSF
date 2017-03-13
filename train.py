@@ -66,8 +66,7 @@ def train():
             saver.restore(sess, conf.model_path)
         for epoch in xrange(start_epoch, conf.max_epoch):
             train_data = data["train"]()
-            for img, cond, img_id in train_data:
-                print(img_id)
+            for img, cond, _  in train_data:
                 img, cond = prepocess_train(img, cond)
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
@@ -77,7 +76,7 @@ def train():
                       % (counter, time.time() - start_time, m, M, flux)
             if (epoch + 1) % conf.save_per_epoch == 0:
                 save_path = saver.save(sess, conf.save_path + "/model.ckpt")
-                print "Model saved in file: %s" % save_path
+                print "Model at epoch %s saved in file: %s" % (epoch, save_path)
 
                 log = open(conf.save_path + "/log", "w")
                 log.write(str(epoch + 1))

@@ -4,7 +4,7 @@ class Config:
     save_path = "./model"
 
     #if you are not going to train from the very beginning, change this path to the existing model path
-    model_path = ""#"../model/model.ckpt"
+    model_path = "./model/model.ckpt"
 
     start_epoch = 0
     output_path = "./result"
@@ -20,7 +20,7 @@ class Config:
 
     learning_rate = 0.0002
     beta1 = 0.5
-    max_epoch = 100
+    max_epoch = 2
     L1_lambda = 100
     sum_lambda = 0####
-    save_per_epoch=5
+    save_per_epoch=1

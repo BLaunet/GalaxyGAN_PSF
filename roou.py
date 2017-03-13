@@ -25,9 +25,9 @@ def gaussian_PSF(center_coord, size, sigma):
     :param sigma: sigma of the gaussian distribution
     :return: normalised PSF of size size*size centered on [x0, y0]
     '''
-    x0, y0 = [a - b for a,b in zip(center_coord, [size//2, size//2])]
-    x, y = np.mgrid[-size//2 + 1:size//2 + 1, -size//2 + 1:size//2 + 1]
-    g = np.exp(-(((x-x0)**2 + (y-y0)**2)/(2.0*sigma**2)))
+    x0, y0 = center_coord[0]
+    x, y = np.mgrid[0:size,0:size]
+    g = np.exp(-(((x-y0)**2 + (y-x0)**2)/(2.0*sigma**2)))
     return g/g.sum()
 
 def adjust(origin):
@@ -61,13 +61,13 @@ def find_centroid(im, guesslist=np.zeros((1,2)), b_size=0):
     centroid_pos = []
     if b_size == 0:
         threshold = np.max(im) / 10.
-        centroid_pos.append(photutils.find_peaks(im, threshold, box_size=5., subpixel = True, npeaks = 1))
+        centroid_pos.append(photutils.find_peaks(im, threshold, box_size=15, subpixel = True, npeaks = 1))
     else:
         for k in range(0,l):
             crd = map(int, guesslist[k])
             region = im[ crd[1]-b_size : crd[1]+b_size , crd[0]-b_size : crd[0]+b_size ]
             threshold = np.max(region) / 10.
-            centroid_pos.append(photutils.find_peaks(region, threshold, box_size=5, subpixel = True , npeaks = 1))
+            centroid_pos.append(photutils.find_peaks(region, threshold, box_size=15, subpixel = True , npeaks = 1))
 
     x_ctr = []
     y_ctr = []
@@ -91,10 +91,10 @@ def roou():
 
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
-    parser.add_argument("--input", default="./fits_test")    #"/mnt/ds3lab/galaxian/source/sdss/dr12/images/fits")
+    parser.add_argument("--input", default="./fits_train")    #"/mnt/ds3lab/galaxian/source/sdss/dr12/images/fits")
     parser.add_argument("--catalog", default = "z_005_catalog.csv")
     parser.add_argument("--figure", default="figures")
-    parser.add_argument("--mode", default="1")
+    parser.add_argument("--mode", default="0")
     parser.add_argument("--crop", default = "0")
     args = parser.parse_args()
 
@@ -122,8 +122,8 @@ def roou():
 
     not_found_fluxes = 0
     for i in files:
-        print i
         image_id = os.path.basename(i).replace("-r.fits.bz2", '')
+        print(image_id)
         try:
             flux = fluxes[image_id]
         except KeyError:
@@ -139,22 +139,18 @@ def roou():
         size = data_r.shape[0]
         center_coord = [size//2, size//2]
 
-        #centroid_coord = find_centroid(data_r, np.array([center_coord]), 5) 
-        centroid_coord = center_coord
+        centroid_coord = find_centroid(data_r, np.array([center_coord]), ) 
+        #centroid_coord = center_coord
 
         figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
         figure_original[:,:,0] = data_r
 
-        if is_demo:
-            cv2.imshow("img", adjust(figure_original))
-            cv2.waitKey(0)
 
         # PSF
         fwhm_use = fwhm/0.396
         gaussian_sigma = fwhm_use / 2.355
         psf = gaussian_PSF(centroid_coord, size, gaussian_sigma)
 
-        print "IIIIII"
         figure_with_PSF = np.ones((data_r.shape[0],data_r.shape[1],1))
 
         if(ratio == -1):
@@ -167,18 +163,18 @@ def roou():
         #Renormalization
         figure_with_PSF[:, :, 0] = data_PSF*data_r.sum()/data_PSF.sum()
 
-        if is_demo:
-            cv2.imshow("i", figure_with_PSF)
-            cv2.waitKey(0)
+        
 
         #Crop
         if(cropsize > 0):
             figure_original = crop(figure_original,cropsize)
             figure_with_PSF = crop(figure_with_PSF, cropsize)
 
-        # thresold
+        print("Max pixel = figure_with_PSF.max()")
+        # threshold
         MAX = 4
         MIN = -0.1
+
 
         figure_original[figure_original<MIN]=MIN
         figure_original[figure_original>MAX]=MAX
