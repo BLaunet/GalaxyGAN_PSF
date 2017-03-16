@@ -18,9 +18,13 @@ class Config:
     img_channel = 1
     conv_channel_base = 64
 
+    #Scaling
+    pixel_max_value = 700
+    scale_factor = 100
+
     learning_rate = 0.0002
     beta1 = 0.5
-    max_epoch = 2
+    max_epoch = 20
     L1_lambda = 100
     sum_lambda = 0####
     save_per_epoch=1

@@ -61,7 +61,7 @@ def find_centroid(im, guesslist=np.zeros((1,2)), b_size=0):
     centroid_pos = []
     if b_size == 0:
         threshold = np.max(im) / 10.
-        centroid_pos.append(photutils.find_peaks(im, threshold, box_size=15, subpixel = True, npeaks = 1))
+        centroid_pos.append(photutils.find_peaks(im, threshold, box_size=5, subpixel = True, npeaks = 1))
     else:
         for k in range(0,l):
             crd = map(int, guesslist[k])
@@ -88,6 +88,7 @@ def get_fluxes(filename):
 
 def roou():
     is_demo = 0
+    np.random.seed(42)
 
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
@@ -139,7 +140,7 @@ def roou():
         size = data_r.shape[0]
         center_coord = [size//2, size//2]
 
-        centroid_coord = find_centroid(data_r, np.array([center_coord]), ) 
+        centroid_coord = find_centroid(data_r, np.array([center_coord]), 20) 
         #centroid_coord = center_coord
 
         figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
@@ -170,27 +171,24 @@ def roou():
             figure_original = crop(figure_original,cropsize)
             figure_with_PSF = crop(figure_with_PSF, cropsize)
 
-        print("Max pixel = figure_with_PSF.max()")
         # threshold
-        MAX = 4
+        MAX = conf.pixel_max_value
         MIN = -0.1
+        #scale factor
+        A = conf.scale_factor
 
 
-#        figure_original[figure_original<MIN]=MIN
-#        figure_original[figure_original>MAX]=MAX
+        figure_original[figure_original<MIN]=MIN
+        figure_original[figure_original>MAX]=MAX
 
-#        figure_with_PSF[figure_with_PSF<MIN]=MIN
-#        figure_with_PSF[figure_with_PSF>MAX]=MAX
-
-        # normalize figures
-#        figure_original = (figure_original-MIN)/(MAX-MIN)
-#        figure_with_PSF = (figure_with_PSF-MIN)/(MAX-MIN)
-
+        figure_with_PSF[figure_with_PSF<MIN]=MIN
+        figure_with_PSF[figure_with_PSF>MAX]=MAX
 
         # asinh scaling
-        figure_original = np.arcsinh(10*figure_original)/3
-        figure_with_PSF = np.arcsinh(10*figure_with_PSF)/3
+        figure_original = np.where(figure_original<0.03, figure_original, np.arcsinh(A*figure_original)/np.arcsinh(A*MAX))
+        figure_with_PSF = np.where(figure_with_PSF<0.03, figure_with_PSF, np.arcsinh(A*figure_with_PSF)/np.arcsinh(A*MAX))
 
+        #print(figure_with_PSF)
         # output result to pix2pix format
         figure_combined = np.zeros((figure_original.shape[0], figure_original.shape[1]*2,1))
         figure_combined[:,: figure_original.shape[1],:] = figure_original[:,:,:]

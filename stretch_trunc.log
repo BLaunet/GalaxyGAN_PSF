@@ -1,0 +1,21 @@
+./figures/train
+Iterate [1]: time: 4.2436, d_loss: 0.00000182, g_loss: 94.57225037, flux: 0.00287059
+Iterate [2]: time: 4.3730, d_loss: 0.00164818, g_loss: 49.13825226, flux: 0.00267914
+Iterate [3]: time: 4.4998, d_loss: 0.00394048, g_loss: 69.67828369, flux: 0.00224781
+Iterate [4]: time: 4.6236, d_loss: 0.00450620, g_loss: 52.66627884, flux: 0.00151745
+Iterate [5]: time: 4.7480, d_loss: 0.02261076, g_loss: 55.46771240, flux: 0.00171387
+Iterate [6]: time: 4.8719, d_loss: 0.09523603, g_loss: 47.49591446, flux: 0.00178499
+Iterate [7]: time: 4.9961, d_loss: 0.19870244, g_loss: 47.61108017, flux: 0.00066753
+Iterate [8]: time: 5.1214, d_loss: 0.05461324, g_loss: 35.02578735, flux: 0.00147983
+Iterate [9]: time: 5.2465, d_loss: 0.01086698, g_loss: 42.24742126, flux: 0.00137400
+Iterate [10]: time: 5.3720, d_loss: 0.00504706, g_loss: 49.34529114, flux: 0.00088299
+Iterate [11]: time: 5.5004, d_loss: 0.28475541, g_loss: 42.20375824, flux: 0.00074045
+Iterate [12]: time: 5.6258, d_loss: 0.46283233, g_loss: 40.35007858, flux: 0.00103866
+Iterate [13]: time: 5.7495, d_loss: 0.40883565, g_loss: 38.96437836, flux: 0.00126346
+Iterate [14]: time: 5.8742, d_loss: 0.00746283, g_loss: 30.32284164, flux: 0.00082613
+Iterate [15]: time: 5.9990, d_loss: 0.00314374, g_loss: 49.98384094, flux: 0.00073560
+Iterate [16]: time: 6.1233, d_loss: 0.00134073, g_loss: 43.10994339, flux: 0.00104397
+Iterate [17]: time: 6.2485, d_loss: 0.00546432, g_loss: 36.48578644, flux: 0.00133415
+Model at epoch 10 saved in file: ./model/model.ckpt
+./figures/test
+(424, 424)

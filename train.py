@@ -7,6 +7,8 @@ import tensorflow as tf
 import numpy as np
 import time
 import os
+from astropy.io import fits
+import math
 
 def prepocess_train(img, cond):
     #img = scipy.misc.imresize(img, [conf.adjust_size, conf.adjust_size])
@@ -58,7 +60,6 @@ def train():
         log.close()
     except:
         pass
-
     with tf.Session() as sess:
         if conf.model_path == "":
             sess.run(tf.global_variables_initializer())
@@ -76,21 +77,29 @@ def train():
                       % (counter, time.time() - start_time, m, M, flux)
             if (epoch + 1) % conf.save_per_epoch == 0:
                 save_path = saver.save(sess, conf.save_path + "/model.ckpt")
-                print "Model at epoch %s saved in file: %s" % (epoch, save_path)
+                print "Model at epoch %s saved in file: %s" % (epoch+1, save_path)
 
                 log = open(conf.save_path + "/log", "w")
                 log.write(str(epoch + 1))
                 log.close()
 
                 test_data = data["test"]()
-                test_count = 0
                 for img, cond, name in test_data:
-                    test_count += 1
+                    name = name.replace('.npy','')
                     pimg, pcond = prepocess_test(img, cond)
                     gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
-                    image = np.concatenate((gen_img, cond), axis=1)
-                    np.save(conf.output_path + "/" + name,image)
+                    panel = np.concatenate((img, cond, gen_img), axis=1)
+                    imsave(panel[:,:,0], conf.output_path+"/panels/%s.jpg" % name)
+
+                    unstretch = np.sinh(gen_img[:,:,0]*np.arcsinh(conf.scale_factor*conf.pixel_max_value))
+                    mask = (gen_img[:,:,0]<math.asinh(conf.scale_factor*0.03)/math.asinh(conf.scale_factor*conf.pixel_max_value))
+                    fits_recover = np.where(mask, gen_img[:,:,0], unstretch)
+                    hdu = fits.PrimaryHDU(fits_recover)
+                    filename = conf.output_path + "/fits/%s.fits" % name
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                    hdu.writeto(filename)
 
 if __name__ == "__main__":
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
