@@ -109,6 +109,8 @@ def roou():
 
     train_folder = '%s/train'%(args.figure)
     test_folder = '%s/test'%(args.figure)
+    raw_train_folder = '%s/raw/train'%(args.figure)
+    raw_test_folder = '%s/raw/test'%(args.figure)
 
     if not os.path.exists('./' + args.figure):
         os.makedirs("./" + args.figure)
@@ -116,7 +118,10 @@ def roou():
         os.makedirs("./" + train_folder)
     if not os.path.exists("./" + test_folder):
         os.makedirs("./" + test_folder)
-
+    if not os.path.exists("./" + raw_train_folder):
+        os.makedirs("./" + raw_train_folder)
+    if not os.path.exists("./" + raw_test_folder):
+        os.makedirs("./" + raw_test_folder)
     fits_path = '%s/*-r.fits.bz2'%(input)
     files = glob.glob(fits_path)
     #files = [f for f in files if os.path.basename(f).replace("-r.fits.bz2", '') in fluxes.keys() ]  To be used later
@@ -164,7 +169,16 @@ def roou():
         #Renormalization
         figure_with_PSF[:, :, 0] = data_PSF*data_r.sum()/data_PSF.sum()
 
-        
+        #Saving the "raw" data+PSF before stretching
+        if mode:
+            raw_name = '%s/%s.fits'%(raw_test_folder, image_id)
+        else:
+            raw_name = '%s/%s.fits'%(raw_train_folder, image_id)
+        if os.path.exists(raw_name):
+            os.remove(raw_name)
+
+        hdu = fits.PrimaryHDU(figure_with_PSF[:,:,0])
+        hdu.writeto(raw_name)
 
         #Crop
         if(cropsize > 0):
