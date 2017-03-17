@@ -20,11 +20,11 @@ class Config:
 
     #Scaling
     pixel_max_value = 700
-    scale_factor = 100
+    scale_factor = 10
 
     learning_rate = 0.0002
     beta1 = 0.5
     max_epoch = 20
     L1_lambda = 100
     sum_lambda = 0####
-    save_per_epoch=1
+    save_per_epoch=5

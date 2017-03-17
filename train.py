@@ -50,8 +50,10 @@ def train():
     start_time = time.time()
     if not os.path.exists(conf.save_path):
         os.makedirs(conf.save_path)
-    if not os.path.exists(conf.output_path):
-        os.makedirs(conf.output_path)
+    if not os.path.exists(conf.output_path+'/fits'):
+        os.makedirs(conf.output_path+'/fits')
+    if not os.path.exists(conf.output_path+'/panels'):
+        os.makedirs(conf.output_path+'/panels')
 
     start_epoch = 0
     try:
