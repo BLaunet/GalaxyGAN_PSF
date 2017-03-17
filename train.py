@@ -92,9 +92,7 @@ def train():
                     panel = np.concatenate((img, cond, gen_img), axis=1)
                     imsave(panel[:,:,0], conf.output_path+"/panels/%s.jpg" % name)
 
-                    unstretch = np.sinh(gen_img[:,:,0]*np.arcsinh(conf.scale_factor*conf.pixel_max_value))
-                    mask = (gen_img[:,:,0]<math.asinh(conf.scale_factor*0.03)/math.asinh(conf.scale_factor*conf.pixel_max_value))
-                    fits_recover = np.where(mask, gen_img[:,:,0], unstretch)
+                    fits_recover = np.sinh(gen_img[:,:,0]*math.asinh(conf.scale_factor*conf.pixel_max_value))/conf.scale_factor
                     hdu = fits.PrimaryHDU(fits_recover)
                     filename = conf.output_path + "/fits/%s.fits" % name
                     if os.path.exists(filename):

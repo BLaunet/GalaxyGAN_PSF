@@ -199,8 +199,8 @@ def roou():
         figure_with_PSF[figure_with_PSF>MAX]=MAX
 
         # asinh scaling
-        figure_original = np.where(figure_original<0.03, figure_original, np.arcsinh(A*figure_original)/np.arcsinh(A*MAX))
-        figure_with_PSF = np.where(figure_with_PSF<0.03, figure_with_PSF, np.arcsinh(A*figure_with_PSF)/np.arcsinh(A*MAX))
+        figure_original = np.arcsinh(A*figure_original)/np.arcsinh(A*MAX)
+        figure_with_PSF = np.arcsinh(A*figure_with_PSF)/np.arcsinh(A*MAX)
 
         #print(figure_with_PSF)
         # output result to pix2pix format
