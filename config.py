@@ -20,7 +20,7 @@ class Config:
 
     #Scaling
     pixel_max_value = 700
-    scale_factor = 1
+    scale_factor = 50
 
     learning_rate = 0.0002
     beta1 = 0.5
