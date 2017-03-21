@@ -198,9 +198,12 @@ def roou():
         figure_with_PSF[figure_with_PSF<MIN]=MIN
         figure_with_PSF[figure_with_PSF>MAX]=MAX
 
-        # asinh scaling
-        figure_original = np.arcsinh(A*figure_original)/np.arcsinh(A*MAX)
-        figure_with_PSF = np.arcsinh(A*figure_with_PSF)/np.arcsinh(A*MAX)
+        # log scaling
+        # Normalize between 0 and 1
+        figure_original = (figure_original - MIN)/(MAX - MIN)
+        figure_with_PSF = (figure_with_PSF - MIN)/(MAX - MIN)
+        figure_original = np.log10(A*figure_original+1)/np.log10(A)
+        figure_with_PSF = np.log10(A*figure_with_PSF+1)/np.log10(A)
 
         #print(figure_with_PSF)
         # output result to pix2pix format
