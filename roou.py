@@ -187,10 +187,7 @@ def roou():
 
         # threshold
         MAX = conf.pixel_max_value
-        MIN = -0.1
-        #scale factor
-        A = conf.scale_factor
-
+        MIN = conf.pixel_min_value
 
         figure_original[figure_original<MIN]=MIN
         figure_original[figure_original>MAX]=MAX
@@ -198,13 +195,10 @@ def roou():
         figure_with_PSF[figure_with_PSF<MIN]=MIN
         figure_with_PSF[figure_with_PSF>MAX]=MAX
 
-        # log scaling
-        # Normalize between 0 and 1
-        figure_original = (figure_original - MIN)/(MAX - MIN)
-        figure_with_PSF = (figure_with_PSF - MIN)/(MAX - MIN)
-        figure_original = np.log10(A*figure_original+1)/np.log10(A)
-        figure_with_PSF = np.log10(A*figure_with_PSF+1)/np.log10(A)
-
+        # Scaling
+        figure_original = conf.stretch(figure_original)
+        figure_with_PSF = conf.stretch(figure_with_PSF)
+        
         #print(figure_with_PSF)
         # output result to pix2pix format
         figure_combined = np.zeros((figure_original.shape[0], figure_original.shape[1]*2,1))
