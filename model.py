@@ -1,3 +1,4 @@
+# %load /home/blaunet/GalaxyGAN_python/model.py
 import math 
 from config import Config as conf
 from utils import conv2d, deconv2d, linear, batch_norm, lrelu
@@ -27,7 +28,7 @@ class CGAN(object):
 
         self.d_loss = pos_loss + neg_loss
         self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.ones_like(neg))) + \
-                      0.01 * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
+                      0.03 * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
                       conf.L1_lambda * tf.reduce_mean(tf.abs(self.image_00 - self.g_img_00))
 
         t_vars = tf.trainable_variables()

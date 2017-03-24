@@ -1,3 +1,4 @@
+
 from config import Config as conf
 from data import *
 import scipy.misc
@@ -50,10 +51,8 @@ def train():
     start_time = time.time()
     if not os.path.exists(conf.save_path):
         os.makedirs(conf.save_path)
-    if not os.path.exists(conf.output_path+'/fits'):
-        os.makedirs(conf.output_path+'/fits')
-    if not os.path.exists(conf.output_path+'/panels'):
-        os.makedirs(conf.output_path+'/panels')
+    if not os.path.exists('%s/output'%conf.output_path):
+        os.makedirs('%s/output'%conf.output_path)
 
     start_epoch = 0
     try:
@@ -91,12 +90,10 @@ def train():
                     pimg, pcond = prepocess_test(img, cond)
                     gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
-                    panel = np.concatenate((img, cond, gen_img), axis=1)
-                    imsave(panel[:,:,0], conf.output_path+"/panels/%s.jpg" % name)
 
                     fits_recover = conf.unstretch(gen_img[:,:,0])
                     hdu = fits.PrimaryHDU(fits_recover)
-                    filename = conf.output_path + "/fits/%s.fits" % name
+                    filename = conf.output_path + "/output/%s.fits" % name
                     if os.path.exists(filename):
                         os.remove(filename)
                     hdu.writeto(filename)

@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: UTF-8 -*-
 import argparse
 import numpy as np
 import cv2
@@ -88,7 +87,7 @@ def get_fluxes(filename):
 
 def roou():
     is_demo = 0
-    np.random.seed(42)
+    random.seed(42)
 
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
@@ -109,8 +108,7 @@ def roou():
 
     train_folder = '%s/train'%(args.figure)
     test_folder = '%s/test'%(args.figure)
-    raw_train_folder = '%s/raw/train'%(args.figure)
-    raw_test_folder = '%s/raw/test'%(args.figure)
+    raw_test_folder = '%s/input'%(conf.output_path)
 
     if not os.path.exists('./' + args.figure):
         os.makedirs("./" + args.figure)
@@ -118,13 +116,11 @@ def roou():
         os.makedirs("./" + train_folder)
     if not os.path.exists("./" + test_folder):
         os.makedirs("./" + test_folder)
-    if not os.path.exists("./" + raw_train_folder):
-        os.makedirs("./" + raw_train_folder)
     if not os.path.exists("./" + raw_test_folder):
         os.makedirs("./" + raw_test_folder)
+    
     fits_path = '%s/*-r.fits.bz2'%(input)
     files = glob.glob(fits_path)
-    #files = [f for f in files if os.path.basename(f).replace("-r.fits.bz2", '') in fluxes.keys() ]  To be used later
 
     not_found_fluxes = 0
     for i in files:
@@ -146,7 +142,6 @@ def roou():
         center_coord = [size//2, size//2]
 
         centroid_coord = find_centroid(data_r, np.array([center_coord]), 20) 
-        #centroid_coord = center_coord
 
         figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
         figure_original[:,:,0] = data_r
@@ -172,14 +167,11 @@ def roou():
         #Saving the "raw" data+PSF before stretching
         if mode:
             raw_name = '%s/%s.fits'%(raw_test_folder, image_id)
-        else:
-            raw_name = '%s/%s.fits'%(raw_train_folder, image_id)
-        if os.path.exists(raw_name):
-            os.remove(raw_name)
-
-        hdu = fits.PrimaryHDU(figure_with_PSF[:,:,0])
-        hdu.writeto(raw_name)
-
+            print(raw_name)
+            if os.path.exists(raw_name):
+                os.remove(raw_name)
+            hdu = fits.PrimaryHDU(figure_with_PSF[:,:,0])
+            hdu.writeto(raw_name)
         #Crop
         if(cropsize > 0):
             figure_original = crop(figure_original,cropsize)

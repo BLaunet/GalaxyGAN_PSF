@@ -1,3 +1,5 @@
+# %load /home/blaunet/GalaxyGAN_python/config.py
+
 import math
 import numpy as np
 class Config:
@@ -9,7 +11,7 @@ class Config:
     model_path = ""#./model/model.ckpt"
 
     start_epoch = 0
-    output_path = "./result"
+    output_path = "/home/blaunet/results/asinh_a_20_003"
 
     #used GPU
     use_gpu = 1
@@ -23,21 +25,30 @@ class Config:
     #Scaling
     pixel_max_value = 700
     pixel_min_value = -0.1
-    scale_factor = 1000
-    stretch_type = 'log' #'asinh'
-    def unstretch(self, data):
-        if self.stretch_type == 'log':
-            return self.pixel_min_value + (self.pixel_max_value - self.pixel_min_value)* (np.pow(data*math.log10(self.scale_factor), 10)-1)/self.scale_factor
-        elif self.stretch_type == 'asinh':
-            return np.sinh(data*math.asinh(conf.scale_factor*conf.pixel_max_value))/conf.scale_factor
+    scale_factor = 20
+    stretch_type = 'asinh'#'log' #'asinh'
+    
+    @classmethod
+    def stretch(cls, data):
+        if cls.stretch_type == 'log':
+            return np.log10(cls.scale_factor*((data - cls.pixel_min_value)/(cls.pixel_max_value - cls.pixel_min_value))+1)/math.log10(cls.scale_factor)
+        elif cls.stretch_type == 'asinh':
+            return np.arcsinh(cls.scale_factor*data)/math.asinh(cls.scale_factor*cls.pixel_max_value)
+        elif cls.stretch_type == '0':
+            return data/cls.pixel_max_value
         else:
-            raise ValueError('Unknown stretch_type : %s'%self.stretch_type)
-
-    def stretch(self,data):
-        if self.stretch_type = 'log':
-            return np.log10(conf.scale_factor*((data - conf.pixel_min_value)/(conf.pixel_max_value - conf.pixel_min_value))+1)/math.log10(conf.scale_factor)
-        elif self.stretch_type == 'asinh':
-            return np.asinh(conf.scale_factor*data)/math.asinh(conf.scale_factor*conf.pixel_max_value)
+            raise ValueError('Unknown stretch_type : %s'%cls.stretch_type)
+            
+    @classmethod
+    def unstretch(cls, data):
+        if cls.stretch_type == 'log':
+            return cls.pixel_min_value + (cls.pixel_max_value - cls.pixel_min_value)* (np.power(data*math.log10(cls.scale_factor), 10)-1)/cls.scale_factor
+        elif cls.stretch_type == 'asinh':
+            return np.sinh(data*math.asinh(cls.scale_factor*cls.pixel_max_value))/cls.scale_factor
+        elif cls.stretch_type == '0':
+            return data*cls.pixel_max_value
+        else:
+            raise ValueError('Unknown stretch_type : %s'%cls.stretch_type)
 
     learning_rate = 0.0002
     beta1 = 0.5
