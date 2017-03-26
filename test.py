@@ -37,19 +37,20 @@ def test():
 
     with tf.Session() as sess:
         saver.restore(sess, conf.model_path)
-        test_data = data["test"]()
-        for img, cond, image_id in test_data:
-            image_id = image_id.replace('.npy','')
-            pimg, pcond = prepocess_test(img, cond)
-            gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
-            gen_img = gen_img.reshape(gen_img.shape[1:])
-            panel = np.concatenate((img, cond, gen_img), axis=1)
-            imsave(panel[:,:,0], "./test" + "/%s.jpg" % image_id)
+                        test_data = data["test"]()
+                for img, cond, name in test_data:
+                    name = name.replace('.npy','')
+                    pimg, pcond = prepocess_test(img, cond)
+                    gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond}\
+)
+                    gen_img = gen_img.reshape(gen_img.shape[1:])
 
-            #Recovering FITS
-            fits_recover = np.sinh(gen_img[:,:, 0]*3)/10
-            hdu = fits.PrimaryHDU(fits_recover)
-            hdu.writeto("./test/fits/%s.fits"%image_id)
+                    fits_recover = conf.unstretch(gen_img[:,:,0])
+                    hdu = fits.PrimaryHDU(fits_recover)
+                    filename = conf.output_path + "/output/%s.fits" % name
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                    hdu.writeto(filename)
 
 
 if __name__ == "__main__":

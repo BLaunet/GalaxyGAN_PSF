@@ -29,6 +29,11 @@ def gaussian_PSF(center_coord, size, sigma):
     g = np.exp(-(((x-y0)**2 + (y-x0)**2)/(2.0*sigma**2)))
     return g/g.sum()
 
+def step_PSF(center_coord, size, sigma):
+    x0, y0 = center_coord[0]
+    psf = np.zeros((size,size))
+    psf[int(y0-simga/2):int(y0+sigma/2)+1,int(x0-simga/2):int(x0+sigma/2)+]=1
+    return psf/psf.sum()
 def adjust(origin):
     img = origin.copy()
     img[img>4] = 4
@@ -116,8 +121,8 @@ def roou():
         os.makedirs("./" + train_folder)
     if not os.path.exists("./" + test_folder):
         os.makedirs("./" + test_folder)
-    if not os.path.exists("./" + raw_test_folder):
-        os.makedirs("./" + raw_test_folder)
+    if not os.path.exists(raw_test_folder):
+        os.makedirs(raw_test_folder)
     
     fits_path = '%s/*-r.fits.bz2'%(input)
     files = glob.glob(fits_path)
@@ -150,7 +155,10 @@ def roou():
         # PSF
         fwhm_use = fwhm/0.396
         gaussian_sigma = fwhm_use / 2.355
-        psf = gaussian_PSF(centroid_coord, size, gaussian_sigma)
+        if(mode):
+            psf = step_PSF(centroid_coord, size, fwhm_use)
+        else:
+            psf = gaussian_PSF(centroid_coord, size, gaussian_sigma)
 
         figure_with_PSF = np.ones((data_r.shape[0],data_r.shape[1],1))
 
