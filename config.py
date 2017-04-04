@@ -1,3 +1,4 @@
+
 # %load /home/blaunet/GalaxyGAN_python/config.py
 
 import math
@@ -11,7 +12,7 @@ class Config:
     model_path = ""#./model/model.ckpt"
 
     start_epoch = 0
-    output_path = "/home/blaunet/results/asinh_a_20_003"
+    output_path = "/home/blaunet/results/test"
 
     #used GPU
     use_gpu = 1
@@ -23,7 +24,7 @@ class Config:
     conv_channel_base = 64
 
     #Scaling
-    pixel_max_value = 700
+    pixel_max_value = 700#3500
     pixel_min_value = -0.1
     scale_factor = 20
     stretch_type = 'asinh'#'log' #'asinh'

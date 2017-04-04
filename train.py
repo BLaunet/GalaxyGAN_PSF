@@ -1,4 +1,7 @@
 
+
+#  %load /home/blaunet/GalaxyGAN_python/train.py
+
 from config import Config as conf
 from data import *
 import scipy.misc
@@ -55,17 +58,17 @@ def train():
         os.makedirs('%s/output'%conf.output_path)
 
     start_epoch = 0
-    try:
-        log = open(conf.save_path + "/log")
-        start_epoch = int(log.readline())
-        log.close()
-    except:
-        pass
     with tf.Session() as sess:
         if conf.model_path == "":
             sess.run(tf.global_variables_initializer())
         else:
             saver.restore(sess, conf.model_path)
+            try:
+                log = open(conf.save_path + "/log")
+                start_epoch = int(log.readline())
+                log.close()
+            except:
+                pass
         for epoch in xrange(start_epoch, conf.max_epoch):
             train_data = data["train"]()
             for img, cond, _  in train_data:

@@ -1,39 +1,19 @@
 #!/usr/bin/python
 import argparse
 import numpy as np
-import cv2
-import math
 import random
-from scipy.stats import norm
 import os
 from astropy.io import fits
 import glob
 import bz2
-import csv
-import photutils
+import pandas
 from IPython import embed
 from config import Config as conf
+import photometry
 # mode : 0 training : 1 testing
 
 parser = argparse.ArgumentParser()
 
-def gaussian_PSF(center_coord, size, sigma):
-    '''
-    :param center_coord: [x0,y0] coordinates of the center of the galaxy on which the PSF has to be applied
-    :param size: 1D size in pixels of the generated image
-    :param sigma: sigma of the gaussian distribution
-    :return: normalised PSF of size size*size centered on [x0, y0]
-    '''
-    x0, y0 = center_coord[0]
-    x, y = np.mgrid[0:size,0:size]
-    g = np.exp(-(((x-y0)**2 + (y-x0)**2)/(2.0*sigma**2)))
-    return g/g.sum()
-
-def step_PSF(center_coord, size, sigma):
-    x0, y0 = center_coord[0]
-    psf = np.zeros((size,size))
-    psf[int(y0-simga/2):int(y0+sigma/2)+1,int(x0-simga/2):int(x0+sigma/2)+]=1
-    return psf/psf.sum()
 def adjust(origin):
     img = origin.copy()
     img[img>4] = 4
@@ -51,44 +31,6 @@ def crop(img, size):
     cropped = cropped[min:max,min:max,:]
     return cropped
 
-def find_centroid(im, guesslist=np.zeros((1,2)), b_size=0):
-    '''
-    :param im: image data array
-    :param guesslist: array of coordinate tuples (as np.ndarray) in pixel coordinates, can only be provided, if b_size
-    does not vanish. The coordinates in guesslist are taken as centeres of the cutouts of size b_size.
-    :param b_size: size (in pixel coordinates) of image cutout used for calculation. Is set as length of im by
-    default.
-    :return: array of centroid tuples
-    '''
-    l = guesslist.shape[0]
-    b_size = int(round(b_size))
-    centroid_pos = []
-    if b_size == 0:
-        threshold = np.max(im) / 10.
-        centroid_pos.append(photutils.find_peaks(im, threshold, box_size=5, subpixel = True, npeaks = 1))
-    else:
-        for k in range(0,l):
-            crd = map(int, guesslist[k])
-            region = im[ crd[1]-b_size : crd[1]+b_size , crd[0]-b_size : crd[0]+b_size ]
-            threshold = np.max(region) / 10.
-            centroid_pos.append(photutils.find_peaks(region, threshold, box_size=15, subpixel = True , npeaks = 1))
-
-    x_ctr = []
-    y_ctr = []
-    for i in range(0, l):
-        x_ctr.append(float(centroid_pos[i]['x_centroid']) - b_size + int(guesslist[i, 0]))
-        y_ctr.append(float(centroid_pos[i]['y_centroid']) - b_size + int(guesslist[i, 1]))
-
-    centroid_pos = zip(x_ctr, y_ctr)
-    return centroid_pos
-
-def get_fluxes(filename):
-    cModelFlux_r = {}
-    with open(filename) as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=',')
-        for row in reader:
-            cModelFlux_r[row['id']]=float(row['cModelFlux_r'])
-    return cModelFlux_r
 
 def roou():
     is_demo = 0
@@ -97,23 +39,28 @@ def roou():
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
     parser.add_argument("--input", default="./fits_train")    #"/mnt/ds3lab/galaxian/source/sdss/dr12/images/fits")
-    parser.add_argument("--catalog", default = "z_005_catalog.csv")
+    parser.add_argument("--catalog", default = "catalog.csv")
     parser.add_argument("--figure", default="figures")
     parser.add_argument("--mode", default="0")
     parser.add_argument("--crop", default = "0")
+    parser.add_argument('--psf', default='sdss')
     args = parser.parse_args()
 
     fwhm = float(args.fwhm)
     ratio  = float(args.ratio)
     input =  args.input
-    fluxes = get_fluxes(args.catalog)
     figure = args.figure
     mode = int(args.mode)
     cropsize = int(args.crop)
-
+    psf_type = args.psf
+    
+    catalog = pandas.read_csv(args.catalog)
+    
+    
     train_folder = '%s/train'%(args.figure)
     test_folder = '%s/test'%(args.figure)
     raw_test_folder = '%s/input'%(conf.output_path)
+    GAN_input_path = '%s/GAN_input/'%(conf.output_path)
 
     if not os.path.exists('./' + args.figure):
         os.makedirs("./" + args.figure)
@@ -123,62 +70,72 @@ def roou():
         os.makedirs("./" + test_folder)
     if not os.path.exists(raw_test_folder):
         os.makedirs(raw_test_folder)
+    if not os.path.exists(GAN_input_path):
+        os.makedirs(GAN_input_path)
+    
     
     fits_path = '%s/*-r.fits.bz2'%(input)
     files = glob.glob(fits_path)
 
-    not_found_fluxes = 0
+    not_found = 0
     for i in files:
         image_id = os.path.basename(i).replace("-r.fits.bz2", '')
+        print('\n')
         print(image_id)
-        try:
-            flux = fluxes[image_id]
-        except KeyError:
-            not_found_fluxes = not_found_fluxes + 1
+        
+        obj_line = catalog.loc[catalog['dr7ObjID'] == int(image_id)]
+        if obj_line.empty:
+            not_found = not_found + 1
+            print('Not found')
             continue
-
+            
         f = bz2.BZ2File(i)
 
         rfits = fits.open(f)
         data_r = rfits[0].data
         rfits.close()
-
-        size = data_r.shape[0]
-        center_coord = [size//2, size//2]
-
-        centroid_coord = find_centroid(data_r, np.array([center_coord]), 20) 
-
-        figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
-        figure_original[:,:,0] = data_r
-
-
-        # PSF
+        
+        flux = obj_line['cModelFlux_r'].item()
+        
         fwhm_use = fwhm/0.396
         gaussian_sigma = fwhm_use / 2.355
-        if(mode):
-            psf = step_PSF(centroid_coord, size, fwhm_use)
-        else:
-            psf = gaussian_PSF(centroid_coord, size, gaussian_sigma)
-
-        figure_with_PSF = np.ones((data_r.shape[0],data_r.shape[1],1))
-
+        
         if(ratio == -1):
             r = random.uniform(0.1, 10)
         else:
             r = ratio
         print("ratio = %s" %r)
+        
+        if psf_type == 'step':
+            data_PSF = photometry.add_step_PSF(data_r, r*flux, fwhm_use)
+            
+        elif psf_type == 'gaussian':
+            data_PSF = photometry.add_gaussian_PSF(data_r, r*flux, gaussian_sigma)
+            
+        elif psf_type == 'sdss':
+            data_PSF = photometry.add_sdss_PSF(data_r, r*flux, obj_line)
+            
+        else:
+            print('Unknown psf type : %s'%psf_type)
+            raise ValueError(psf_type)
 
-        data_PSF = psf*r*flux + data_r
+            
+        print('data_r centroid : %s'%photometry.find_centroid(data_r, guesslist=[212,212], b_size = 20))
+        print('data_PSF centroid : %s'%photometry.find_centroid(data_PSF, guesslist=[212,212], b_size = 20))
+        figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
+        figure_original[:,:,0] = data_r
+
+        figure_with_PSF = np.ones((data_r.shape[0],data_r.shape[1],1))
+
         #Renormalization
         figure_with_PSF[:, :, 0] = data_PSF*data_r.sum()/data_PSF.sum()
-
+        
         #Saving the "raw" data+PSF before stretching
         if mode:
             raw_name = '%s/%s.fits'%(raw_test_folder, image_id)
-            print(raw_name)
             if os.path.exists(raw_name):
                 os.remove(raw_name)
-            hdu = fits.PrimaryHDU(figure_with_PSF[:,:,0])
+            hdu = fits.PrimaryHDU(data_PSF)
             hdu.writeto(raw_name)
         #Crop
         if(cropsize > 0):
@@ -207,9 +164,10 @@ def roou():
 
         if mode:
             mat_path = '%s/test/%s.npy'% (figure,image_id)
+            np.save('%s/%s.npy'%(GAN_input_path,image_id), figure_combined)
         else:
             mat_path = '%s/train/%s.npy'% (figure,image_id)
 
         np.save(mat_path, figure_combined)
-    print("%s images have not been used because there were no corresponding flux" % not_found_fluxes)
+    print("%s images have not been used because there were no corresponding objects in the catalog" % not_found)
 roou()

@@ -1,3 +1,6 @@
+
+
+#%load /home/blaunet/GalaxyGAN_python/test.py
 from config import Config as conf
 from data import *
 import scipy.misc
@@ -21,10 +24,8 @@ def prepocess_test(img, cond):
 
 def test():
 
-    if not os.path.exists("test"):
-        os.makedirs("test")
-    if not os.path.exists("test/fits"):
-        os.makedirs("test/fits")
+    if not os.path.exists(conf.output_path + "/output/"):
+        os.makedirs(conf.output_path + "/output/")
     data = load_data()
     model = CGAN()
 
@@ -37,21 +38,22 @@ def test():
 
     with tf.Session() as sess:
         saver.restore(sess, conf.model_path)
-                        test_data = data["test"]()
-                for img, cond, name in test_data:
-                    name = name.replace('.npy','')
-                    pimg, pcond = prepocess_test(img, cond)
-                    gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond}\
-)
-                    gen_img = gen_img.reshape(gen_img.shape[1:])
+        test_data = data["test"]()
+        for img, cond, name in test_data:
+            name = name.replace('.npy','')
+            pimg, pcond = prepocess_test(img, cond)
+            gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
+            gen_img = gen_img.reshape(gen_img.shape[1:])
 
-                    fits_recover = conf.unstretch(gen_img[:,:,0])
-                    hdu = fits.PrimaryHDU(fits_recover)
-                    filename = conf.output_path + "/output/%s.fits" % name
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                    hdu.writeto(filename)
+            fits_recover = conf.unstretch(gen_img[:,:,0])
+            hdu = fits.PrimaryHDU(fits_recover)
+            filename = conf.output_path + "/output/%s.fits" % name
+            if os.path.exists(filename):
+                os.remove(filename)
+            hdu.writeto(filename)
 
 
 if __name__ == "__main__":
+    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+    os.environ["CUDA_VISIBLE_DEVICES"]=str(conf.use_gpu)
     test()
