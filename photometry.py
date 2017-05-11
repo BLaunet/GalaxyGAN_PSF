@@ -7,46 +7,56 @@ from astropy.stats import sigma_clipped_stats
 import pandas
 import photutils
 import galfit
+from config import Config as conf
 
 def generate_sdss_psf(obj_line, psf_filename):
-    home_dir = '/home/blaunet'
+    home_dir = '/mnt/ds3lab/blaunet'
     psfTool_path = '%s/readAtlasImages-v5_4_11/read_PSF'%home_dir
     psfFields_dir = '%s/psfFields'%home_dir
+    #psfFields_dir = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
 
     run = obj_line['run'].item()
     rerun = obj_line['rerun'].item()
     camcol = obj_line['camcol'].item()
     field = obj_line['field'].item()
+    #psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit'%(psfFields_dir, rerun, run, camcol, run, camcol, field)
+
     psfField = '%s/psField-%06d-%d-%04d.fit'%(psfFields_dir, run, camcol, field)
-    
+
     colc = obj_line['colc'].item()
     rowc = obj_line['rowc'].item()
     os.system('%s %s 3 %s %s %s'%(psfTool_path, psfField, rowc, colc, psf_filename ))
-    
-    hdu = fits.open(psf_filename)
-    psf_data = np.array(hdu[0].data, dtype = float)/1000 - 1
-    hdu.close()
-    os.remove(psf_filename)
-    hdu = fits.PrimaryHDU(psf_data)
-    hdu.writeto(psf_filename)
-    
-def add_sdss_PSF(original, psf_flux, obj_line):
-    
-    home = '/home/blaunet'
-    SDSS_psf_dir = '%s/GalaxyGAN_python/psf/SDSS'%home
-    GALFIT_psf_dir = '%s/GalaxyGAN_python/psf/GALFIT'%home
+    try:
+
+        hdu = fits.open(psf_filename)
+        psf_data = np.array(hdu[0].data, dtype = float)/1000 - 1
+        hdu.close()
+        os.remove(psf_filename)
+        hdu = fits.PrimaryHDU(psf_data)
+        hdu.writeto(psf_filename)
+    except:
+        print('no psf %s'%psf_filename)
+
+def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
+
+    SDSS_psf_dir = '%s/psf/SDSS'%conf.run_case
+    GALFIT_psf_dir = '%s/psf/GALFIT'%conf.run_case
     if not os.path.exists(SDSS_psf_dir):
         os.makedirs(SDSS_psf_dir)
     if not os.path.exists(GALFIT_psf_dir):
-        os.makedirs(GALFIT_psf_dir)    
-        
+        os.makedirs(GALFIT_psf_dir)
+
     obj_id = obj_line['dr7ObjID'].item()
-    psf_filename = '%s/%s-psf.fits'%(SDSS_psf_dir, obj_id)
-    
-    if not os.path.exists(psf_filename):
-        generate_sdss_psf(obj_line, psf_filename)
-    
-    psf = galfit.fit_PSF_GALFIT(psf_filename, GALFIT_psf_dir)
+    SDSS_psf_filename = '%s/%s-r.fits'%(SDSS_psf_dir, obj_id)
+    GALFIT_psf_filename = '%s/%s-r.fits'%(GALFIT_psf_dir, obj_id)
+    if not os.path.exists(GALFIT_psf_filename):
+        if not os.path.exists(SDSS_psf_filename):
+            generate_sdss_psf(obj_line, SDSS_psf_filename)
+        psf = galfit.fit_PSF_GALFIT(SDSS_psf_filename, GALFIT_psf_dir)
+        if psf is None:
+            return None
+    else:
+        psf = galfit.open_GALFIT_results(GALFIT_psf_filename, 'model')
 
     center = [original.shape[1]//2, original.shape[0]//2]
     centroid_galaxy = find_centroid(original, guesslist=center, b_size=20)
@@ -56,6 +66,8 @@ def add_sdss_PSF(original, psf_flux, obj_line):
 
     composite_image = np.copy(original)
 
+    k = 3 if multiple else 1
+    
     gal_x = int(round(centroid_galaxy[0]))
     gal_y = int(round(centroid_galaxy[1]))
     ps_x = int(round(centroid_PSF[0]))
@@ -82,7 +94,7 @@ def add_gaussian_PSF(original, psf_flux, sigma):
     x0, y0 = find_centroid(original)
     x, y = np.mgrid[0:size,0:size]
     psf = np.exp(-(((x-y0)**2 + (y-x0)**2)/(2.0*sigma**2)))
-    
+
     return original+psf_flux*psf/psf.sum()
 
 def add_step_PSF(original, psf_flux, sigma):

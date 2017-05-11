@@ -1,7 +1,4 @@
 
-
-#  %load /home/blaunet/GalaxyGAN_python/train.py
-
 from config import Config as conf
 from data import *
 import scipy.misc
@@ -40,7 +37,7 @@ def prepocess_test(img, cond):
     return img,cond
 
 def train():
-    
+
 
     data = load_data()
     model = CGAN()
@@ -52,10 +49,11 @@ def train():
 
     counter = 0
     start_time = time.time()
+    out_dir = conf.result_path
     if not os.path.exists(conf.save_path):
         os.makedirs(conf.save_path)
-    if not os.path.exists('%s/output'%conf.output_path):
-        os.makedirs('%s/output'%conf.output_path)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
     start_epoch = 0
     with tf.Session() as sess:
@@ -80,6 +78,7 @@ def train():
                 print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f, flux: %.8f"\
                       % (counter, time.time() - start_time, m, M, flux)
             if (epoch + 1) % conf.save_per_epoch == 0:
+                #save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))
                 save_path = saver.save(sess, conf.save_path + "/model.ckpt")
                 print "Model at epoch %s saved in file: %s" % (epoch+1, save_path)
 
@@ -89,14 +88,17 @@ def train():
 
                 test_data = data["test"]()
                 for img, cond, name in test_data:
-                    name = name.replace('.npy','')
+                    name = name.replace('-r.npy','')
                     pimg, pcond = prepocess_test(img, cond)
                     gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
 
                     fits_recover = conf.unstretch(gen_img[:,:,0])
                     hdu = fits.PrimaryHDU(fits_recover)
-                    filename = conf.output_path + "/output/%s.fits" % name
+                    save_dir = '%s/epoch_%s/fits_output'%(out_dir, epoch+1)
+                    if not os.path.exists(save_dir):
+                        os.makedirs(save_dir)
+                    filename = '%s/%s-r.fits'%(save_dir,name)
                     if os.path.exists(filename):
                         os.remove(filename)
                     hdu.writeto(filename)

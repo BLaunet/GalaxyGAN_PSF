@@ -4,7 +4,7 @@ import astropy.io.fits as fits
 import photometry
 import os
 import glob
-galfit_path = '/home/blaunet/galfit'
+galfit_path = '~/galfit'
 
 
 def create_feedme_PSF(feedmefile, ifile, resultfile, ipath, platescale, centroid, imshape):
@@ -73,7 +73,7 @@ def create_feedme_PSF(feedmefile, ifile, resultfile, ipath, platescale, centroid
     file_res.close()
 
 
-def open_GALFIT_results(ipath, filename, framename):
+def open_GALFIT_results(file_path, framename):
     if framename == 'original':
         extension = 1
     elif framename == 'model':
@@ -81,7 +81,7 @@ def open_GALFIT_results(ipath, filename, framename):
     elif framename == 'residual':
         extension = 3
     elif framename == 'all':
-        hdu = fits.open(ipath+file)
+        hdu = fits.open(file_path)
         original = hdu[1].data
         model = hdu[2].data
         residual = hdu[3].data
@@ -89,7 +89,7 @@ def open_GALFIT_results(ipath, filename, framename):
         return original, model, residual
     else:
         raise ValueError('Please provide a framename which is either "original", "model", or "residual".')
-    return fits.getdata('%s/%s'%(ipath,filename), ext=extension)
+    return fits.getdata(file_path, ext=extension)
 
 
 def fit_PSF_GALFIT(fname, out_dir):
@@ -109,9 +109,11 @@ def fit_PSF_GALFIT(fname, out_dir):
     for f in glob.glob('%s/galfit.*'%out_dir):
         os.remove(f)
     #os.system('cd %s; rm -f galfit.*; rm -f result.fits'%fpath)
-    out_name = os.path.basename(fname).replace('.fits', '')
-    create_feedme_PSF('galfit.feedme', fname, '%s-model.fits'%out_name, out_dir, 0.396, centroid, imshape)
+    out_name = os.path.basename(fname)
+    out_path = '%s/%s'%(out_dir, out_name)
+    create_feedme_PSF('galfit.feedme', fname, out_name, out_dir, 0.396, centroid, imshape)
     os.system('cd %s; %s galfit.feedme >> galfit.log'%(out_dir, galfit_path) )
-    if not os.path.exists('%s/%s-model.fits'%(out_dir, out_name)):
+    if not os.path.exists(out_path):
         print('ERROR NO RESULT')
-    return open_GALFIT_results(out_dir, '%s-model.fits'%out_name, 'model')
+        return None
+    return open_GALFIT_results(out_path, 'model')

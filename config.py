@@ -1,21 +1,40 @@
-
-# %load /home/blaunet/GalaxyGAN_python/config.py
-
 import math
 import numpy as np
 class Config:
-    #used for training	
-    data_path = "./figures"
-    save_path = "./model"
 
+    #Redshift
+    redshift = 0.1
+    stretch_type = 'pow' #'linear' 'log' normalized_linear
+    scale_factor = 3
+    attention_parameter = 0.1
+    #model_to_use = 'z_0.1'
+    use_gpu = 4
+
+    run_case = "/mnt/ds3lab/blaunet/results/z_%s"%(redshift)
+    #run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
+    #Scaling
+    if '0.01' in run_case:
+        pixel_max_value = 41100
+    elif '0.05' in run_case:
+        pixel_max_value = 6140
+    elif '0.1' in run_case:
+        pixel_max_value = 1450
+    elif 'darg_outliers' in run_case:
+        pixel_max_value = 22000
+    elif 'darg_late_stage' in run_case:
+        pixel_max_value = 4000
+    pixel_min_value = -0.1
+    stretch_setup = '%s/%s_%s'%(run_case, stretch_type, scale_factor)
+    sub_config = '%s/WGAN_%s'%(stretch_setup, attention_parameter)
+    output_path = '%s/GAN_output'%(sub_config)
+    result_path = output_path
+    #result_path = '%s/%s_model'%(output_path, model_to_use)
+    #used for training
+    data_path = "%s/npy_input"%(stretch_setup)
+    save_path =  "%s/model"%(sub_config)
     #if you are not going to train from the very beginning, change this path to the existing model path
-    model_path = ""#./model/model.ckpt"
-
+    model_path = ''#"/mnt/ds3lab/blaunet/results/%s/asinh_20/model/model.ckpt"%(model_to_use)
     start_epoch = 0
-    output_path = "/home/blaunet/results/test"
-
-    #used GPU
-    use_gpu = 1
 
     #changed to FITs, mainly refer to the size
     img_size = 424
@@ -23,37 +42,40 @@ class Config:
     img_channel = 1
     conv_channel_base = 64
 
-    #Scaling
-    pixel_max_value = 700#3500
-    pixel_min_value = -0.1
-    scale_factor = 20
-    stretch_type = 'asinh'#'log' #'asinh'
-    
     @classmethod
     def stretch(cls, data):
         if cls.stretch_type == 'log':
             return np.log10(cls.scale_factor*((data - cls.pixel_min_value)/(cls.pixel_max_value - cls.pixel_min_value))+1)/math.log10(cls.scale_factor)
         elif cls.stretch_type == 'asinh':
             return np.arcsinh(cls.scale_factor*data)/math.asinh(cls.scale_factor*cls.pixel_max_value)
-        elif cls.stretch_type == '0':
+
+        elif cls.stretch_type == 'pow':
+            return np.power((data - cls.pixel_min_value)/(cls.pixel_max_value - cls.pixel_min_value),1/float(cls.scale_factor))
+        elif cls.stretch_type == 'linear':
             return data/cls.pixel_max_value
+        elif cls.stretch_type == 'normalized_linear':
+            return (data-cls.pixel_min_value)/(cls.pixel_max_value-cls.pixel_min_value)
         else:
             raise ValueError('Unknown stretch_type : %s'%cls.stretch_type)
-            
+
     @classmethod
     def unstretch(cls, data):
         if cls.stretch_type == 'log':
             return cls.pixel_min_value + (cls.pixel_max_value - cls.pixel_min_value)* (np.power(data*math.log10(cls.scale_factor), 10)-1)/cls.scale_factor
         elif cls.stretch_type == 'asinh':
             return np.sinh(data*math.asinh(cls.scale_factor*cls.pixel_max_value))/cls.scale_factor
-        elif cls.stretch_type == '0':
+        elif cls.stretch_type == 'pow':
+            return np.power(data,cls.scale_factor)*(cls.pixel_max_value - cls.pixel_min_value) + cls.pixel_min_value
+        elif cls.stretch_type == 'linear':
             return data*cls.pixel_max_value
+        elif cls.stretch_type == 'normalized_linear':
+            return data*(cls.pixel_max_value-cls.pixel_min_value)+ cls.pixel_min_value
         else:
             raise ValueError('Unknown stretch_type : %s'%cls.stretch_type)
 
     learning_rate = 0.0002
     beta1 = 0.5
-    max_epoch = 20
+    max_epoch = 50
     L1_lambda = 100
     sum_lambda = 0####
     save_per_epoch=5
