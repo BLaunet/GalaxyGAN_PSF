@@ -16,6 +16,3 @@ def load_data(path=conf.data_path):
     # data["val"] = load(conf.data_path + "/val")
     data["test"] = lambda: load(path + "/test")
     return data
-
-
-

@@ -1,6 +1,6 @@
 import math
 from config import Config as conf
-from utils import conv2d, deconv2d, linear, batch_norm, lrelu
+from utils import conv2d, deconv2d, linear, batch_norm, lrelu, stretch, get_scale_factor
 import tensorflow as tf
 from IPython import embed
 
@@ -25,6 +25,7 @@ class CGAN(object):
 
         self.delta = tf.square(tf.reduce_mean(self.image)-(tf.reduce_mean(self.gen_img)))
 
+        self.scale_factor = get_scale_factor()
         self.d_loss = pos_loss + neg_loss
         self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.ones_like(neg))) + \
                       conf.attention_parameter * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
@@ -34,8 +35,12 @@ class CGAN(object):
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
         self.g_vars = [var for var in t_vars if 'gen' in var.name]
 
+
     def discriminator(self, img, cond, reuse):
         dim = len(img.get_shape())
+        img = stretch(img)
+        cond = stretch(cond)
+
         with tf.variable_scope("disc", reuse=reuse):
             image = tf.concat([img, cond], dim - 1)
             feature = conf.conv_channel_base
@@ -47,8 +52,11 @@ class CGAN(object):
         return h4
 
     def generator(self, cond):
+        cond = stretch(cond)
+
         with tf.variable_scope("gen"):
             feature = conf.conv_channel_base
+
             e1 = conv2d(cond, feature, name="e1")
             e2 = batch_norm(conv2d(lrelu(e1), feature*2, name="e2"), "e2")
             e3 = batch_norm(conv2d(lrelu(e2), feature*4, name="e3"), "e3")

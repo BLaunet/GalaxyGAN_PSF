@@ -4,10 +4,10 @@ class Config:
 
     #Redshift
     redshift = 0.01
-    stretch_type = 'pow' #'linear' 'log' normalized_linear
+    stretch_type = 'log' #'linear' 'log' normalized_linear
     attention_parameter = 0.1
     #model_to_use = 'z_0.1'
-    use_gpu = 0
+    use_gpu = 1
 
     run_case = "/mnt/ds3lab/blaunet/results/z_%s"%(redshift)
     #run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
@@ -44,8 +44,8 @@ class Config:
 
     @classmethod
     def stretch(cls, data, factor):
-        MAX = cls.pixel_max_value
-        MIN = cls.pixel_min_value
+        MAX = conf.pixel_max_value
+        MIN = conf.pixel_min_value
         #data[data<MIN]=MIN
         #data[data>MAX]=MAX
         if cls.stretch_type == 'log':
@@ -64,8 +64,8 @@ class Config:
 
     @classmethod
     def unstretch(cls, data, factor):
-        MAX = cls.pixel_max_value
-        MIN = cls.pixel_min_value
+        MAX = conf.pixel_max_value
+        MIN = conf.pixel_min_value
         if cls.stretch_type == 'log':
             return MIN + (MAX - MIN)* (np.power(data*math.log10(factor), 10)-1)/factor
         elif cls.stretch_type == 'asinh':
@@ -84,4 +84,4 @@ class Config:
     max_epoch = 50
     L1_lambda = 100
     sum_lambda = 0####
-    save_per_epoch=1
+    save_per_epoch=5

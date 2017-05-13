@@ -71,6 +71,7 @@ def train():
             train_data = data["train"]()
             for img, cond, _  in train_data:
                 img, cond = prepocess_train(img, cond)
+                print(sess.run(model.scale_factor))
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, M, flux = sess.run([g_opt, model.g_loss, model.delta], feed_dict={model.image:img, model.cond:cond})
@@ -93,15 +94,23 @@ def train():
                     gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
 
-                    fits_recover = conf.unstretch(gen_img[:,:,0])
-                    hdu = fits.PrimaryHDU(fits_recover)
-                    save_dir = '%s/epoch_%s/fits_output'%(out_dir, epoch+1)
+                    # fits_recover = conf.unstretch(gen_img[:,:,0])
+                    # hdu = fits.PrimaryHDU(fits_recover)
+                    # save_dir = '%s/epoch_%s/fits_output'%(out_dir, epoch+1)
+                    # if not os.path.exists(save_dir):
+                    #     os.makedirs(save_dir)
+                    # filename = '%s/%s-r.fits'%(save_dir,name)
+                    # if os.path.exists(filename):
+                    #     os.remove(filename)
+                    # hdu.writeto(filename)
+                    recover = gen_img[:,:,0]
+                    save_dir = '%s/epoch_%s/npy_output'%(out_dir, epoch+1)
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     filename = '%s/%s-r.fits'%(save_dir,name)
                     if os.path.exists(filename):
                         os.remove(filename)
-                    hdu.writeto(filename)
+                    np.save(filename, figure_combined)
 
 if __name__ == "__main__":
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152

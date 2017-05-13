@@ -14,15 +14,6 @@ import photometry
 
 parser = argparse.ArgumentParser()
 
-def adjust(origin):
-    img = origin.copy()
-    img[img>4] = 4
-    img[img < -0.1] = -0.1
-    MIN = np.min(img)
-    MAX = np.max(img)
-    img = np.arcsinh(10*(img - MIN)/(MAX-MIN))/3
-    return img
-
 def crop(img, size):
     cropped = img.copy()
     center = cropped.shape[0]/2
@@ -39,8 +30,7 @@ def roou():
 
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
-    parser.add_argument("--input", default="%s/fits_test"%conf.run_case)    #"/mnt/ds3lab/galaxian/source/sdss/dr12/images/fits")
-    parser.add_argument("--catalog", default = "catalog.csv")
+    parser.add_argument("--input", default="%s/fits_test"%conf.run_case)
     parser.add_argument("--figure", default=conf.data_path)
     parser.add_argument("--mode", default="1")
     parser.add_argument("--crop", default = "0")
@@ -54,7 +44,6 @@ def roou():
     mode = int(args.mode)
     cropsize = int(args.crop)
     psf_type = args.psf
-    catalog_path = args.catalog
 
     if mode == 1:
         input = '%s/fits_test'%conf.run_case
@@ -63,22 +52,16 @@ def roou():
         input = '%s/fits_train'%conf.run_case
         catalog_path = glob.glob('%s/catalog_train*'%conf.run_case)[0]
     print('Input files : %s'%input)
+
     catalog = pandas.read_csv(catalog_path)
 
-    #catalog = catalog.iloc[0]
-
-
-    train_folder = '%s/train'%(args.figure)
-    test_folder = '%s/test'%(args.figure)
-    raw_test_folder = '%s/fits_input'%(conf.run_case)
-    #GAN_input_path = '%s/%s_%s/npy_input'%(conf.run_case, conf.stretch_type, conf.scale_factor)
+    train_folder = '%s/train'%(figure)
+    test_folder = '%s/test'%(figure)
 
     if not os.path.exists(train_folder):
         os.makedirs(train_folder)
     if not os.path.exists(test_folder):
         os.makedirs(test_folder)
-    if not os.path.exists(raw_test_folder):
-        os.makedirs(raw_test_folder)
 
 
     #fits_path = '%s/*-r.fits.bz2'%(input)
@@ -96,7 +79,6 @@ def roou():
         obj_line = catalog.loc[catalog['dr7ObjID'] == int(image_id)]
         if obj_line.empty:
             not_found = not_found + 1
-            print('Not found')
             continue
 
         #f = bz2.BZ2File(i)
@@ -133,7 +115,6 @@ def roou():
             print('Unknown psf type : %s'%psf_type)
             raise ValueError(psf_type)
 
-
         print('data_r centroid : %s'%photometry.find_centroid(data_r, guesslist=[212,212], b_size = 20))
         print('data_PSF centroid : %s'%photometry.find_centroid(data_PSF, guesslist=[212,212], b_size = 20))
         figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
@@ -141,10 +122,8 @@ def roou():
 
         figure_with_PSF = np.ones((data_r.shape[0],data_r.shape[1],1))
 
-        #Renormalization
-        figure_with_PSF[:, :, 0] = data_PSF#*data_r.sum()/data_PSF.sum()
+        figure_with_PSF[:, :, 0] = data_PSF
 
-        #Saving the "raw" data+PSF before stretching
         saving_orig = False
         if mode and saving_orig:
             raw_name = '%s/%s-r.fits'%(raw_test_folder, image_id)
@@ -156,21 +135,6 @@ def roou():
         if(cropsize > 0):
             figure_original = crop(figure_original,cropsize)
             figure_with_PSF = crop(figure_with_PSF, cropsize)
-
-        # threshold
-        MAX = conf.pixel_max_value
-        MIN = conf.pixel_min_value
-
-        figure_original[figure_original<MIN]=MIN
-        figure_original[figure_original>MAX]=MAX
-
-        figure_with_PSF[figure_with_PSF<MIN]=MIN
-        figure_with_PSF[figure_with_PSF>MAX]=MAX
-
-        # Scaling
-        figure_original = conf.stretch(figure_original)
-        figure_with_PSF = conf.stretch(figure_with_PSF)
-
         #print(figure_with_PSF)
         # output result to pix2pix format
         figure_combined = np.zeros((figure_original.shape[0], figure_original.shape[1]*2,1))
