@@ -35,7 +35,6 @@ class CGAN(object):
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
         self.g_vars = [var for var in t_vars if 'gen' in var.name]
 
-
     def discriminator(self, img, cond, reuse):
         dim = len(img.get_shape())
         img = stretch(img)

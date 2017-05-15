@@ -136,6 +136,11 @@ def roou():
             figure_original = crop(figure_original,cropsize)
             figure_with_PSF = crop(figure_with_PSF, cropsize)
         #print(figure_with_PSF)
+        MIN = conf.pixel_min_value
+        figure_original[figure_original<MIN]=MIN
+        figure_with_PSF[figure_with_PSF<MIN]=MIN
+
+        #data[data>MAX]=MAX
         # output result to pix2pix format
         figure_combined = np.zeros((figure_original.shape[0], figure_original.shape[1]*2,1))
         figure_combined[:,: figure_original.shape[1],:] = figure_original[:,:,:]

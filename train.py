@@ -10,6 +10,8 @@ import time
 import os
 from astropy.io import fits
 import math
+import glob
+import shutil
 
 def prepocess_train(img, cond):
     #img = scipy.misc.imresize(img, [conf.adjust_size, conf.adjust_size])
@@ -47,6 +49,23 @@ def train():
 
     saver = tf.train.Saver()
 
+    tf.summary.scalar('d_loss', model.d_loss)
+    tf.summary.scalar('g_loss', model.g_loss)
+    tf.summary.scalar('flux', model.delta)
+    tf.summary.tensor_summary('scale_factor', model.scale_factor)
+    merged = tf.summary.merge_all()
+
+    summary_test_folder = '%s/summary/test'%conf.sub_config
+    summary_train_folder = '%s/summary/train'%conf.sub_config
+    shutil.rmtree(summary_test_folder)
+    shutil.rmtree(summary_train_folder)
+    os.makedirs(summary_test_folder)
+    os.makedirs(summary_train_folder)
+
+
+    generated_images = {name:tf.summary.image(name, model.gen_img) for _,_,name in data["test"]()}
+    test_writer = tf.summary.FileWriter(summary_test_folder)
+
     counter = 0
     start_time = time.time()
     out_dir = conf.result_path
@@ -67,17 +86,23 @@ def train():
                 log.close()
             except:
                 pass
+        train_writer = tf.summary.FileWriter(summary_train_folder, sess.graph)
         for epoch in xrange(start_epoch, conf.max_epoch):
             train_data = data["train"]()
-            for img, cond, _  in train_data:
+            for img, cond, name in train_data:
                 img, cond = prepocess_train(img, cond)
-                print(sess.run(model.scale_factor))
+                #print(sess.run(model.scale_factor))
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
-                _, M, flux = sess.run([g_opt, model.g_loss, model.delta], feed_dict={model.image:img, model.cond:cond})
+                _, M= sess.run([g_opt, model.g_loss], feed_dict={model.image:img, model.cond:cond})
+                s_factor = sess.run(model.scale_factor)
+                summary = sess.run(merged, feed_dict={model.image:img, model.cond:cond})
                 counter += 1
-                print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f, flux: %.8f"\
-                      % (counter, time.time() - start_time, m, M, flux)
+                train_writer.add_summary(summary,counter)
+                print('ObjID = %s'%name)
+                print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f"% (counter, time.time() - start_time, m, M)
+                print(s_factor)
+                #print "Iterate [%d]: time: %4.4f" % (counter, time.time() - start_time)
             if (epoch + 1) % conf.save_per_epoch == 0:
                 #save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))
                 save_path = saver.save(sess, conf.save_path + "/model.ckpt")
@@ -89,9 +114,10 @@ def train():
 
                 test_data = data["test"]()
                 for img, cond, name in test_data:
-                    name = name.replace('-r.npy','')
                     pimg, pcond = prepocess_test(img, cond)
                     gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
+                    recov = sess.run(generated_images[name], feed_dict={model.image:pimg, model.cond:pcond})
+                    test_writer.add_summary(recov, (epoch))
                     gen_img = gen_img.reshape(gen_img.shape[1:])
 
                     # fits_recover = conf.unstretch(gen_img[:,:,0])
@@ -107,10 +133,12 @@ def train():
                     save_dir = '%s/epoch_%s/npy_output'%(out_dir, epoch+1)
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
+
+                    name = name.replace('-r.npy','')
                     filename = '%s/%s-r.fits'%(save_dir,name)
                     if os.path.exists(filename):
                         os.remove(filename)
-                    np.save(filename, figure_combined)
+                    np.save(filename, recover)
 
 if __name__ == "__main__":
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152

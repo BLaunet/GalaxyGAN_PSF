@@ -9,27 +9,22 @@ def batch_norm(x, scope):
 def get_scale_factor():
     with tf.variable_scope('stretch') as scope:
         try:
-            scale_factor = tf.get_variable('scale_factor', [1], initializer=tf.random_normal_initializer(mean = 0.2, stddev=0.00002))
+           scale_factor = tf.get_variable('scale_factor', [1], dtype=tf.float32, initializer=tf.random_normal_initializer(mean = 5.0, stddev=0.0002))
         except ValueError:
-            scope.reuse_variables()
-            scale_factor = tf.get_variable('scale_factor')
+           scope.reuse_variables()
+           scale_factor = tf.get_variable('scale_factor')
+    #return tf.constant(5.0, name='scale_factor')
     return scale_factor
 def stretch(data):
     scale_factor = get_scale_factor()
+    print(scale_factor)
 
     MAX = conf.pixel_max_value
     MIN = conf.pixel_min_value
-    if conf.stretch_type == 'log':
-        return np.log10(scale_factor*((data - MIN)/(MAX - MIN))+1)/math.log10(scale_factor)
-    elif conf.stretch_type == 'asinh':
-        return np.arcsinh(scale_factor*data)/math.asinh(scale_factor*MAX)
-
-    elif conf.stretch_type == 'pow':
+    if conf.stretch_type == 'pow':
         return tf.pow((data - MIN)/(MAX - MIN),scale_factor)
-    elif conf.stretch_type == 'linear':
-        return data/MAX
-    elif conf.stretch_type == 'normalized_linear':
-        return (data-MIN)/(MAX-MIN)
+    else:
+        raise ValueError('Unknown stretch type')
 
 def conv2d(input, output_dim, k_h=4, k_w=4, d_h=2, d_w=2, stddev=0.02, name="conv2d"):
     with tf.variable_scope(name):
