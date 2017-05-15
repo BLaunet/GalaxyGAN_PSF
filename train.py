@@ -95,13 +95,13 @@ def train():
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, M= sess.run([g_opt, model.g_loss], feed_dict={model.image:img, model.cond:cond})
-                s_factor = sess.run(model.scale_factor)
+                #s_factor = sess.run(model.scale_factor)
                 summary = sess.run(merged, feed_dict={model.image:img, model.cond:cond})
                 counter += 1
                 train_writer.add_summary(summary,counter)
                 print('ObjID = %s'%name)
                 print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f"% (counter, time.time() - start_time, m, M)
-                print(s_factor)
+                #print(s_factor)
                 #print "Iterate [%d]: time: %4.4f" % (counter, time.time() - start_time)
             if (epoch + 1) % conf.save_per_epoch == 0:
                 #save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))

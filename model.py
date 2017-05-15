@@ -37,8 +37,19 @@ class CGAN(object):
 
     def discriminator(self, img, cond, reuse):
         dim = len(img.get_shape())
-        img = stretch(img)
-        cond = stretch(cond)
+        a = tf.constant(5.2,shape=(1,50, 50, 1))
+        MAX = conf.pixel_max_value
+        MIN = conf.pixel_min_value
+        img = tf.pow((img - MIN)/(MAX - MIN),a)
+        cond = tf.pow((cond - MIN)/(MAX - MIN),a)
+        # tmp1 = stretch(img[0,:,:,0])
+        # tmp2 = stretch(cond[0,:,:,0])
+        # print(tmp1)
+        # img = tf.stack([[1],tmp1,[1]])
+        # cond = tf.stack([[1],tmp2,[1]])
+        #img = stretch(img)
+        #cond = stretch(cond)
+
 
         with tf.variable_scope("disc", reuse=reuse):
             image = tf.concat([img, cond], dim - 1)
@@ -51,8 +62,14 @@ class CGAN(object):
         return h4
 
     def generator(self, cond):
-        cond = stretch(cond)
-
+        #tmp = stretch(cond[0,:,:,0])
+        #print(tmp)
+        #cond = tf.stack([1,tmp, 1], axis=1)
+        #cond = stretch(cond)
+        a = tf.constant(5.2,shape=(1,conf.img_size, conf.img_size, conf.img_channel))
+        MAX = conf.pixel_max_value
+        MIN = conf.pixel_min_value
+        cond = tf.pow((cond - MIN)/(MAX - MIN),a)
         with tf.variable_scope("gen"):
             feature = conf.conv_channel_base
 

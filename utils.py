@@ -13,11 +13,11 @@ def get_scale_factor():
         except ValueError:
            scope.reuse_variables()
            scale_factor = tf.get_variable('scale_factor')
-    #return tf.constant(5.0, name='scale_factor')
-    return scale_factor
+    return tf.constant(5.0, name='scale_factor')
+    #return scale_factor
 def stretch(data):
     scale_factor = get_scale_factor()
-    print(scale_factor)
+    #print(scale_factor)
 
     MAX = conf.pixel_max_value
     MIN = conf.pixel_min_value
