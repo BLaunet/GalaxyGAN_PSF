@@ -28,3 +28,6 @@ save/*
 
 #Hidden files
 .*
+
+
+*.ipynb
