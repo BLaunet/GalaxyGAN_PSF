@@ -43,12 +43,12 @@ def train():
 
     data = load_data()
     model = CGAN()
-
     d_opt = tf.train.AdamOptimizer(learning_rate=conf.learning_rate).minimize(model.d_loss, var_list=model.d_vars)
     g_opt = tf.train.AdamOptimizer(learning_rate=conf.learning_rate).minimize(model.g_loss, var_list=model.g_vars)
 
     saver = tf.train.Saver()
 
+    ##TensorBoard setup
     tf.summary.scalar('d_loss', model.d_loss)
     tf.summary.scalar('g_loss', model.g_loss)
     tf.summary.scalar('flux', model.delta)
@@ -61,11 +61,10 @@ def train():
     shutil.rmtree(summary_train_folder)
     os.makedirs(summary_test_folder)
     os.makedirs(summary_train_folder)
-
-
     generated_images = {name:tf.summary.image(name, model.gen_img) for _,_,name in data["test"]()}
     test_writer = tf.summary.FileWriter(summary_test_folder)
-
+    ##
+    
     counter = 0
     start_time = time.time()
     out_dir = conf.result_path
@@ -90,18 +89,21 @@ def train():
         for epoch in xrange(start_epoch, conf.max_epoch):
             train_data = data["train"]()
             for img, cond, name in train_data:
+
                 img, cond = prepocess_train(img, cond)
-                #print(sess.run(model.scale_factor))
+                print(sess.run(model.scale_factor))
+                #img = sess.run(model.img_str, feed_dict={model.image:img, model.cond:cond})
+                #cond = sess.run(model.cond_str, feed_dict={model.image:img, model.cond:cond})
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
                 _, M= sess.run([g_opt, model.g_loss], feed_dict={model.image:img, model.cond:cond})
-                #s_factor = sess.run(model.scale_factor)
+                #generated = sess.run(model.gen_img, feed_dict={model.image:img, model.cond:cond})
+                
                 summary = sess.run(merged, feed_dict={model.image:img, model.cond:cond})
                 counter += 1
                 train_writer.add_summary(summary,counter)
                 print('ObjID = %s'%name)
                 print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f"% (counter, time.time() - start_time, m, M)
-                #print(s_factor)
                 #print "Iterate [%d]: time: %4.4f" % (counter, time.time() - start_time)
             if (epoch + 1) % conf.save_per_epoch == 0:
                 #save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))

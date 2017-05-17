@@ -3,7 +3,7 @@ import numpy as np
 class Config:
 
     #Redshift
-    redshift = 0.01
+    redshift = 0.05
     stretch_type = 'pow' #'linear' 'log' normalized_linear
     attention_parameter = 0.1
     #model_to_use = 'z_0.1'

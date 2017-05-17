@@ -87,8 +87,8 @@ def setup():
         fits_train = '%s/fits_train'%conf.run_case
         if not os.path.exists(fits_train):
             os.makedirs(fits_train)
-        clean_dir(fits_train, train_catalog)
-        download_psfField(train_catalog)
+        #clean_dir(fits_train, train_catalog)
+        #download_psfField(train_catalog)
 
     if not test_catalog.empty:
         fits_test = '%s/fits_test'%conf.run_case

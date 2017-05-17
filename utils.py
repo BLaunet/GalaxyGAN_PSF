@@ -7,22 +7,24 @@ def batch_norm(x, scope):
     return tf.contrib.layers.batch_norm(x, decay=0.9, updates_collections=None, epsilon=1e-5, scale=True, scope=scope)
 
 def get_scale_factor():
-    with tf.variable_scope('stretch') as scope:
+    with tf.variable_scope('disc') as scope:
         try:
-           scale_factor = tf.get_variable('scale_factor', [1], dtype=tf.float32, initializer=tf.random_normal_initializer(mean = 5.0, stddev=0.0002))
+            scale_factor = tf.get_variable('scale_factor', [1], dtype=tf.float32, initializer=tf.random_normal_initializer(mean = 0.15, stddev=0.01))
         except ValueError:
-           scope.reuse_variables()
-           scale_factor = tf.get_variable('scale_factor')
-    return tf.constant(5.0, name='scale_factor')
-    #return scale_factor
+            scope.reuse_variables()
+            scale_factor = tf.get_variable('scale_factor')
+    return scale_factor
 def stretch(data):
     scale_factor = get_scale_factor()
-    #print(scale_factor)
-
-    MAX = conf.pixel_max_value
-    MIN = conf.pixel_min_value
+    #return scale_factor*data
+    MAX = tf.constant(conf.pixel_max_value, dtype=tf.float32)
+    MIN = tf.constant(conf.pixel_min_value, dtype=tf.float32)
     if conf.stretch_type == 'pow':
-        return tf.pow((data - MIN)/(MAX - MIN),scale_factor)
+        tmp1 = data - MIN
+        tmp2 = MAX - MIN
+        div = tf.div(tmp1,tmp2)
+        
+        return tf.pow(div,scale_factor)
     else:
         raise ValueError('Unknown stretch type')
 
