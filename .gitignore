@@ -21,3 +21,9 @@ save/*
 
 #Catalogs
 *.csv
+
+.DS_Store
+.*
+
+*.log
+*.ipynb
