@@ -3,9 +3,9 @@ import numpy as np
 class Config:
 
     #Redshift
-    redshift = 0.05
-    stretch_type = 'pow'
-    scale_factor = 10
+    redshift = 0.1
+    stretch_type = 'sigmoid' #'linear' 'log' normalized_linear
+    scale_factor = 50
     attention_parameter = 0.05
     #model_to_use = 'z_0.1'
     use_gpu = 2
@@ -33,7 +33,7 @@ class Config:
     data_path = "%s/npy_input"%(stretch_setup)
     save_path =  "%s/model"%(sub_config)
     #if you are not going to train from the very beginning, change this path to the existing model path
-    model_path = '' #"/mnt/ds3lab/blaunet/results/%s/asinh_20/model/model.ckpt"%(model_to_use)
+    model_path = ''#"/mnt/ds3lab/blaunet/results/%s/asinh_20/model/model.ckpt"%(model_to_use)
     start_epoch = 0
 
     #changed to FITs, mainly refer to the size

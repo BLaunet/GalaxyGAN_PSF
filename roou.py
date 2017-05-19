@@ -145,7 +145,7 @@ def roou():
         figure_with_PSF[:, :, 0] = data_PSF#*data_r.sum()/data_PSF.sum()
 
         #Saving the "raw" data+PSF before stretching
-        saving_orig = False
+        saving_orig = True
         if mode and saving_orig:
             raw_name = '%s/%s-r.fits'%(raw_test_folder, image_id)
             if os.path.exists(raw_name):

@@ -27,7 +27,6 @@ def generate_sdss_psf(obj_line, psf_filename):
     rowc = obj_line['rowc'].item()
     os.system('%s %s 3 %s %s %s'%(psfTool_path, psfField, rowc, colc, psf_filename ))
     try:
-
         hdu = fits.open(psf_filename)
         psf_data = np.array(hdu[0].data, dtype = float)/1000 - 1
         hdu.close()
@@ -50,6 +49,7 @@ def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
     SDSS_psf_filename = '%s/%s-r.fits'%(SDSS_psf_dir, obj_id)
     GALFIT_psf_filename = '%s/%s-r.fits'%(GALFIT_psf_dir, obj_id)
     if not os.path.exists(GALFIT_psf_filename):
+        print('No Galfit PSF')
         if not os.path.exists(SDSS_psf_filename):
             generate_sdss_psf(obj_line, SDSS_psf_filename)
         psf = galfit.fit_PSF_GALFIT(SDSS_psf_filename, GALFIT_psf_dir)
