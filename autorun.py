@@ -22,10 +22,10 @@ def overwrite_config(file_path, z, factor, stretch, WGAN, gpu):
 
 main_path = '/mnt/ds3lab/blaunet'
 file_path = '%s/GalaxyGAN_python/config.py'%main_path
-scale_factor_list = [50]
-z_list = [0.1]
-stretch_list = ['asinh']
-WGAN_list = [1,10,100]
+scale_factor_list = [5,8]
+z_list = [0.2]
+stretch_list = ['pow']
+WGAN_list = [0.05]
 gpu = 7
 
 for z in z_list:
@@ -33,7 +33,7 @@ for z in z_list:
         for stretch in stretch_list:
             for WGAN in WGAN_list:
 		## Roou
-                npy_input_dir = '%s/results/z_%s/%s_%s/npy_input'%(main_path, z, stretch, scale_f)
+                npy_input_dir = '%s/results/z_%s/%s_%s_ratio_40/npy_input'%(main_path, z, stretch, scale_f)
                 if not (glob.glob('%s/test/*'%npy_input_dir)):
                     overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
                     os.system('. ../my_env/bin/activate; python -u roou.py | tee tmp.log')
@@ -44,4 +44,4 @@ for z in z_list:
                     os.system('. ../my_env/bin/activate; python -u roou.py --mode 0| tee tmp.log')
 
                 overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
-                os.system('. ../my_env/bin/activate; python -u train.py | tee %s/results/z_%s/%s_%s/WGAN_%s.log'%(main_path, z, stretch, scale_f, WGAN))
+                os.system('. ../my_env/bin/activate; python -u train.py | tee %s/results/z_%s/%s_%s_ratio_40/WGAN_%s.log'%(main_path, z, stretch, scale_f, WGAN))

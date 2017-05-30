@@ -8,12 +8,14 @@ import pandas
 import photutils
 import galfit
 from config import Config as conf
+from photutils import centroid_com
+
 
 def generate_sdss_psf(obj_line, psf_filename):
     home_dir = '/mnt/ds3lab/blaunet'
     psfTool_path = '%s/readAtlasImages-v5_4_11/read_PSF'%home_dir
-    psfFields_dir = '%s/psfFields'%home_dir
-    #psfFields_dir = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
+    psfFields_dir_1 = '%s/psfFields'%home_dir
+    psfFields_dir_2 = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
 
     run = obj_line['run'].item()
     rerun = obj_line['rerun'].item()
@@ -21,7 +23,13 @@ def generate_sdss_psf(obj_line, psf_filename):
     field = obj_line['field'].item()
     #psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit'%(psfFields_dir, rerun, run, camcol, run, camcol, field)
 
-    psfField = '%s/psField-%06d-%d-%04d.fit'%(psfFields_dir, run, camcol, field)
+    psfField = '%s/psField-%06d-%d-%04d.fit'%(psfFields_dir_1, run, camcol, field)
+    if not os.path.exists(psfField):
+        psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit'%(psfFields_dir_1, rerun, run, camcol, run, camcol, field)
+    if not os.path.exists(psfField):
+        psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit'%(psfFields_dir_2, rerun, run, camcol, run, camcol, field)
+    if not os.path.exists(psfField):
+        raise FileNotFoundError('No psfField fit found')
 
     colc = obj_line['colc'].item()
     rowc = obj_line['rowc'].item()
@@ -35,6 +43,9 @@ def generate_sdss_psf(obj_line, psf_filename):
         hdu.writeto(psf_filename)
     except:
         print('no psf %s'%psf_filename)
+        print('psfField = %s'%psfField)
+        print('rowc = %s'%rowc)
+        print('colc = %s'%colc)
 
 def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
 
@@ -49,17 +60,18 @@ def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
     SDSS_psf_filename = '%s/%s-r.fits'%(SDSS_psf_dir, obj_id)
     GALFIT_psf_filename = '%s/%s-r.fits'%(GALFIT_psf_dir, obj_id)
     if not os.path.exists(GALFIT_psf_filename):
-        print('No Galfit PSF')
+        #print('No Existing Galfit PSF')
         if not os.path.exists(SDSS_psf_filename):
             generate_sdss_psf(obj_line, SDSS_psf_filename)
         psf = galfit.fit_PSF_GALFIT(SDSS_psf_filename, GALFIT_psf_dir)
         if psf is None:
+            print('Error in Galfit fit')
             return None
     else:
         psf = galfit.open_GALFIT_results(GALFIT_psf_filename, 'model')
 
     center = [original.shape[1]//2, original.shape[0]//2]
-    centroid_galaxy = find_centroid(original, guesslist=center, b_size=20)
+    centroid_galaxy = find_centroid(original)
     #centroid_galaxy = [211,211]
     centroid_PSF = find_centroid(psf)
     #centroid_PSF = [25.0,25.0]
@@ -67,7 +79,7 @@ def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
     composite_image = np.copy(original)
 
     k = 3 if multiple else 1
-    
+
     gal_x = int(round(centroid_galaxy[0]))
     gal_y = int(round(centroid_galaxy[1]))
     ps_x = int(round(centroid_PSF[0]))
@@ -107,61 +119,41 @@ def add_step_PSF(original, psf_flux, sigma):
             if (x0-i)**2+(y0-j)**2 <= sigma**2:
                 psf[j,i]=1
     return original+psf_flux*psf/psf.sum()
+def crop(img, cut):
+    '''Crop the image to a cut*cut image centered on the center'''
+    size =  img.shape[0]
+    return img[size/2-cut:size/2+cut, size/2-cut:size/2+cut]
 
-def starphot(imdata, position, radius, r_in, r_out, plotting=False, plotfilename=None, plotpath=None):
-    '''
-    sources: http://spiff.rit.edu/classes/phys373/lectures/signal/signal_illus.html, http://photutils.readthedocs.io/en/stable/photutils/aperture.html
-    :param imdata:
-    :param position:
-    :param radius:
-    :param plotting:
-    :param plotfilename:
-    :param plotpath:
-    :return:
-    '''
-    statmask = photutils.make_source_mask(imdata, snr=5, npixels=5, dilate_size=10)
-    bkg_annulus = photutils.CircularAnnulus(position, r_in, r_out)
-    bkg_phot_table = photutils.aperture_photometry(imdata, bkg_annulus, method='subpixel', mask=statmask)
-    bkg_mean_per_pixel = bkg_phot_table['aperture_sum'] / bkg_annulus.area()
-    src_aperture = photutils.CircularAperture(position, radius)
-    src_phot_table = photutils.aperture_photometry(imdata, src_aperture, method='subpixel')
-    signal = src_phot_table['aperture_sum'] - bkg_mean_per_pixel*src_aperture.area()
-    noise_squared = signal + bkg_mean_per_pixel*src_aperture.area()
-    if plotting == True:
-        fig, ax = plt.subplots()
-        ax.imshow(imdata, cmap='gray_r', origin='lower', norm=LogNorm())
-        src_aperture.plot(ax=ax)
-        bkg_annulus.plot(ax=ax)
-        plt.title(plotfilename)
-        plt.savefig(plotpath+plotfilename)
-        plt.close()
-    return float(str(signal.data[0])), float(str(noise_squared.data[0])), float(str(bkg_mean_per_pixel.data[0]))
+def find_centroid(img, cut=5):
+    center = (img.shape[1]//2, img.shape[0]//2)
+    x_tmp, y_tmp = centroid_com(crop(img, cut))
+    return [center[0]-cut+x_tmp, center[1]-cut+y_tmp]
 
-def find_centroid(im, guesslist=np.zeros(2), b_size=0):
-    '''
-    :param im: image data array
-    :param guesslist: array of coordinate tuples (as np.ndarray) in pixel coordinates, can only be provided, if b_size
-    does not vanish. The coordinates in guesslist are taken as centeres of the cutouts of size b_size.
-    :param b_size: size (in pixel coordinates) of image cutout used for calculation. Is set as length of im by
-    default.
-    :return: array of centroid tuples
-    '''
-    b_size = int(round(b_size))
-    if b_size == 0:
-
-        mean, median, std = sigma_clipped_stats(im, sigma = 3.0, iters=5)
-        #threshold = np.max(im) / 10.
-        threshold = 3*std
-        centroid_pos = (photutils.find_peaks(im, threshold, box_size=20, subpixel = True, npeaks = 1))
-
-
-    else:
-        crd = (map(int, guesslist))
-        region = im[ crd[1]-b_size : crd[1]+b_size , crd[0]-b_size : crd[0]+b_size ]
-        mean, median, std = sigma_clipped_stats(region, sigma = 3.0, iters=5)
-        threshold = 3*std
-        centroid_pos = photutils.find_peaks(region, threshold, box_size=b_size, subpixel = True , npeaks = 1)
-    x_ctr = (float(centroid_pos['x_centroid']) - b_size + int(guesslist[0]))
-    y_ctr = (float(centroid_pos['y_centroid']) - b_size + int(guesslist[1]))
-
-    return [x_ctr, y_ctr]
+# def find_centroid(im, guesslist=np.zeros(2), b_size=0):
+#     '''
+#     :param im: image data array
+#     :param guesslist: array of coordinate tuples (as np.ndarray) in pixel coordinates, can only be provided, if b_size
+#     does not vanish. The coordinates in guesslist are taken as centeres of the cutouts of size b_size.
+#     :param b_size: size (in pixel coordinates) of image cutout used for calculation. Is set as length of im by
+#     default.
+#     :return: array of centroid tuples
+#     '''
+#     b_size = int(round(b_size))
+#     if b_size == 0:
+#
+#         mean, median, std = sigma_clipped_stats(im, sigma = 3.0, iters=5)
+#         #threshold = np.max(im) / 10.
+#         threshold = 3*std
+#         centroid_pos = (photutils.find_peaks(im, threshold, box_size=20, subpixel = True, npeaks = 1))
+#
+#
+#     else:
+#         crd = (map(int, guesslist))
+#         region = im[ crd[1]-b_size : crd[1]+b_size , crd[0]-b_size : crd[0]+b_size ]
+#         mean, median, std = sigma_clipped_stats(region, sigma = 3.0, iters=5)
+#         threshold = 3*std
+#         centroid_pos = photutils.find_peaks(region, threshold, box_size=b_size, subpixel = True , npeaks = 1)
+#     x_ctr = (float(centroid_pos['x_centroid']) - b_size + int(guesslist[0]))
+#     y_ctr = (float(centroid_pos['y_centroid']) - b_size + int(guesslist[1]))
+#
+#     return [x_ctr, y_ctr]

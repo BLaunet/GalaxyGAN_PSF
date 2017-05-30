@@ -40,7 +40,7 @@ def roou():
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
     parser.add_argument("--input", default="%s/fits_test"%conf.run_case)    #"/mnt/ds3lab/galaxian/source/sdss/dr12/images/fits")
-    parser.add_argument("--catalog", default = "catalog.csv")
+    parser.add_argument("--catalog", default = "")
     parser.add_argument("--figure", default=conf.data_path)
     parser.add_argument("--mode", default="1")
     parser.add_argument("--crop", default = "0")
@@ -70,7 +70,7 @@ def roou():
 
     train_folder = '%s/train'%(args.figure)
     test_folder = '%s/test'%(args.figure)
-    raw_test_folder = '%s/fits_input'%(conf.run_case)
+    raw_test_folder = '%s/fits_input_ratio_40'%(conf.run_case)
     #GAN_input_path = '%s/%s_%s/npy_input'%(conf.run_case, conf.stretch_type, conf.scale_factor)
 
     if not os.path.exists(train_folder):
@@ -112,7 +112,7 @@ def roou():
         gaussian_sigma = fwhm_use / 2.355
 
         if(ratio == -1):
-            r = random.uniform(0.1, 10)
+            r = random.uniform(0.1, 40)
         else:
             r = ratio
         print("ratio = %s" %r)
@@ -133,9 +133,8 @@ def roou():
             print('Unknown psf type : %s'%psf_type)
             raise ValueError(psf_type)
 
-
-        print('data_r centroid : %s'%photometry.find_centroid(data_r, guesslist=[212,212], b_size = 20))
-        print('data_PSF centroid : %s'%photometry.find_centroid(data_PSF, guesslist=[212,212], b_size = 20))
+        print('data_r centroid : %s'%photometry.find_centroid(data_r))
+        print('data_PSF centroid : %s'%photometry.find_centroid(data_PSF))
         figure_original = np.ones((data_r.shape[0],data_r.shape[1],1))
         figure_original[:,:,0] = data_r
 

@@ -10,9 +10,9 @@ import sys
 parser = argparse.ArgumentParser()
 
 def extract_catalog():
-    parser.add_argument("--zmin", default="0.095")
-    parser.add_argument("--zmax", default="0.105")
-    parser.add_argument("--train_size", default="1000")
+    parser.add_argument("--zmin", default="0.195")
+    parser.add_argument("--zmax", default="0.205")
+    parser.add_argument("--train_size", default="5000")
     parser.add_argument("--test_size", default = "100")
 
     args = parser.parse_args()

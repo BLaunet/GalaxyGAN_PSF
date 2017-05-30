@@ -3,12 +3,12 @@ import numpy as np
 class Config:
 
     #Redshift
-    redshift = 0.05
+    redshift = 0.1
     stretch_type = 'pow'
-    scale_factor = 10
+    scale_factor = 8
     attention_parameter = 0.05
     #model_to_use = 'z_0.1'
-    use_gpu = 2
+    use_gpu = 6
 
     run_case = "/mnt/ds3lab/blaunet/results/z_%s"%(redshift)
     #run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
@@ -19,12 +19,14 @@ class Config:
         pixel_max_value = 6140
     elif '0.1' in run_case:
         pixel_max_value = 1450
+    elif '0.2' in run_case:
+        pixel_max_value = 1657
     elif 'darg_outliers' in run_case:
         pixel_max_value = 22000
     elif 'darg_late_stage' in run_case:
         pixel_max_value = 4000
     pixel_min_value = -0.1
-    stretch_setup = '%s/%s_%s'%(run_case, stretch_type, scale_factor)
+    stretch_setup = '%s/%s_%s_ratio_40'%(run_case, stretch_type, scale_factor)
     sub_config = '%s/WGAN_%s'%(stretch_setup, attention_parameter)
     output_path = '%s/GAN_output'%(sub_config)
     result_path = output_path
@@ -55,7 +57,7 @@ class Config:
             return data/cls.pixel_max_value
         elif cls.stretch_type == 'normalized_linear':
             return (data-cls.pixel_min_value)/(cls.pixel_max_value-cls.pixel_min_value)
-        
+
         elif cls.stretch_type == 'sigmoid':
             return (1/(1+np.exp(-cls.scale_factor*np.sqrt((data - cls.pixel_min_value)/(cls.pixel_max_value - cls.pixel_min_value))))-1/2)*2
 

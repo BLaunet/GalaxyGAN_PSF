@@ -4,6 +4,7 @@ import astropy.io.fits as fits
 import photometry
 import os
 import glob
+
 galfit_path = '~/galfit'
 
 
@@ -104,7 +105,7 @@ def fit_PSF_GALFIT(fname, out_dir):
     hdu = fits.open(fname)
     psf_data= np.array(hdu[0].data, dtype=float)
     imshape = psf_data.shape
-    centroid = photometry.find_centroid(psf_data, guesslist=[25,25], b_size=10)
+    centroid = photometry.find_centroid(psf_data)
     print('PSF centroid = %s' % centroid)
     for f in glob.glob('%s/galfit.*'%out_dir):
         os.remove(f)
