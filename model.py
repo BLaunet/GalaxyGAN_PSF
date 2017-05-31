@@ -1,25 +1,34 @@
-import math 
+import math
 from config import Config as conf
 from utils import conv2d, deconv2d, linear, batch_norm, lrelu
 import tensorflow as tf
 from IPython import embed
+
+#
+#
 
 class CGAN(object):
 
     def __init__(self):
         self.image = tf.placeholder(tf.float32, shape=(1,conf.img_size, conf.img_size, conf.img_channel))
         self.cond = tf.placeholder(tf.float32, shape=(1,conf.img_size, conf.img_size, conf.img_channel))
-
         self.gen_img = self.generator(self.cond)
 
-        pos = self.discriminator(self.image, self.cond, False)
-        neg = self.discriminator(self.gen_img, self.cond, True)
+        self.image_00 = tf.slice(self.image, [0, 187, 187, 0], [1, 50, 50, 1])
+        self.cond_00 = tf.slice(self.cond, [0, 187, 187, 0], [1, 50, 50, 1])
+        self.g_img_00 = tf.slice(self.gen_img, [0, 187, 187, 0], [1, 50, 50, 1])
+
+        pos = self.discriminator(self.image_00, self.cond_00, False)
+        neg = self.discriminator(self.g_img_00, self.cond_00, True)
         pos_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pos, labels=tf.ones_like(pos)))
         neg_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.zeros_like(neg)))
 
+        self.delta = tf.square(tf.reduce_mean(self.image)-(tf.reduce_mean(self.gen_img)))
+
         self.d_loss = pos_loss + neg_loss
         self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.ones_like(neg))) + \
-                      conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img))
+                      conf.attention_parameter * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
+                      conf.L1_lambda * tf.reduce_mean(tf.abs(self.image_00 - self.g_img_00))
 
         t_vars = tf.trainable_variables()
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
@@ -60,15 +69,15 @@ class CGAN(object):
             d2 = deconv2d(tf.nn.relu(d1), [1,num[2],num[2],feature*8], name="d2")
             d2 = tf.concat([tf.nn.dropout(batch_norm(d2, "d2"), 0.5), e6], 3)
             d3 = deconv2d(tf.nn.relu(d2), [1,num[3],num[3],feature*8], name="d3")
-            d3 = tf.concat([tf.nn.dropout(batch_norm(d3, "d3"), 0.5), e5], 3) 
+            d3 = tf.concat([tf.nn.dropout(batch_norm(d3, "d3"), 0.5), e5], 3)
             d4 = deconv2d(tf.nn.relu(d3), [1,num[4],num[4],feature*8], name="d4")
             d4 = tf.concat([batch_norm(d4, "d4"), e4], 3)
             d5 = deconv2d(tf.nn.relu(d4), [1,num[5],num[5],feature*4], name="d5")
-            d5 = tf.concat([batch_norm(d5, "d5"), e3], 3) 
+            d5 = tf.concat([batch_norm(d5, "d5"), e3], 3)
             d6 = deconv2d(tf.nn.relu(d5), [1,num[6],num[6],feature*2], name="d6")
             d6 = tf.concat([batch_norm(d6, "d6"), e2], 3)
             d7 = deconv2d(tf.nn.relu(d6), [1,num[7],num[7],feature], name="d7")
-            d7 = tf.concat([batch_norm(d7, "d7"), e1], 3) 
+            d7 = tf.concat([batch_norm(d7, "d7"), e1], 3)
             d8 = deconv2d(tf.nn.relu(d7), [1,num[8],num[8],conf.img_channel], name="d8")
 
             return tf.nn.tanh(d8)
