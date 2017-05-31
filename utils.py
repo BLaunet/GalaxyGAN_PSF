@@ -1,6 +1,7 @@
 import tensorflow as tf
-import scipy.misc
+
 from config import Config as conf
+
 
 def batch_norm(x, scope):
     return tf.contrib.layers.batch_norm(x, decay=0.9, updates_collections=None, epsilon=1e-5, scale=True, scope=scope)

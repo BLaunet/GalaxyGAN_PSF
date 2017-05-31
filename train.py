@@ -1,12 +1,11 @@
+import shutil
 import time
 
 import tensorflow as tf
-from astropy.io import fits
-import math
-import glob
-import shutil
+
 from data import *
 from model import CGAN
+
 
 def prepocess_train(img, cond):
     # img = scipy.misc.imresize(img, [conf.adjust_size, conf.adjust_size])
@@ -98,7 +97,8 @@ def train():
                 counter += 1
                 train_writer.add_summary(summary,counter)
                 print('ObjID = %s'%name)
-                print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f"% (counter, time.time() - start_time, m, M)
+                print(
+                    "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f" % (counter, time.time() - start_time, m, M))
                 #print "Iterate [%d]: time: %4.4f" % (counter, time.time() - start_time)
             if (epoch + 1) % conf.save_per_epoch == 0:
                 # save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))
