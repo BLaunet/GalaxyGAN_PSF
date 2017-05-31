@@ -34,7 +34,7 @@ for z in z_list:
         for stretch in stretch_list:
             for WGAN in WGAN_list:
                 ## Roou
-                npy_input_dir = '%s/results/z_%s/%s_%s_ratio_40/npy_input' % (main_path, z, stretch, scale_f)
+                npy_input_dir = '%s/results/z_%s/%s_%s_ratio_20_noisy/npy_input' % (main_path, z, stretch, scale_f)
                 if not (glob.glob('%s/test/*' % npy_input_dir)):
                     overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
                     os.system('. ../my_env/bin/activate; python -u roou.py | tee tmp.log')
@@ -46,5 +46,5 @@ for z in z_list:
 
                 overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
                 os.system(
-                    '. ../my_env/bin/activate; python -u train.py | tee %s/results/z_%s/%s_%s_ratio_40/WGAN_%s.log' % (
+                    '. ../my_env/bin/activate; python -u train.py | tee %s/results/z_%s/%s_%s_ratio_20_noisy/WGAN_%s.log' % (
                         main_path, z, stretch, scale_f, WGAN))

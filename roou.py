@@ -6,6 +6,8 @@ import random
 import numpy as np
 import pandas
 from astropy.io import fits
+from scipy.stats import norm
+
 import photometry
 from config import Config as conf
 
@@ -34,6 +36,7 @@ def crop(img, size):
 
 
 def roou():
+    global catalog_path, catalog_path
     print(conf.__dict__)
     is_demo = 0
     random.seed(42)
@@ -41,8 +44,7 @@ def roou():
     parser.add_argument("--fwhm", default="1.4")
     parser.add_argument("--ratio", default="-1")
     parser.add_argument("--input",
-                        default="%s/fits_test" % conf.run_case)  # "/mnt/ds3lab/galaxian/source/sdss/dr12/images/fits")
-    parser.add_argument("--catalog", default="")
+                        default="%s/fits_test" % conf.run_case)
     parser.add_argument("--figure", default=conf.data_path)
     parser.add_argument("--mode", default="1")
     parser.add_argument("--crop", default="0")
@@ -56,7 +58,7 @@ def roou():
     mode = int(args.mode)
     cropsize = int(args.crop)
     psf_type = args.psf
-    catalog_path = args.catalog
+    psf_noise = 2  # sigma
 
     if mode == 1:
         input = '%s/fits_test' % conf.run_case
@@ -69,10 +71,9 @@ def roou():
 
     # catalog = catalog.iloc[0]
 
-
-    train_folder = '%s/train' % (args.figure)
-    test_folder = '%s/test' % (args.figure)
-    raw_test_folder = '%s/fits_input_ratio_40' % (conf.run_case)
+    train_folder = '%s/train' % args.figure
+    test_folder = '%s/test' % args.figure
+    raw_test_folder = '%s/fits_input_ratio_20' % conf.run_case
     # GAN_input_path = '%s/%s_%s/npy_input'%(conf.run_case, conf.stretch_type, conf.scale_factor)
 
     if not os.path.exists(train_folder):
@@ -111,6 +112,19 @@ def roou():
         fwhm_use = fwhm / 0.396
         gaussian_sigma = fwhm_use / 2.355
 
+        # add white noise
+        if psf_noise:
+            data_r_nz = data_r[data_r < 0.1]
+            data_r_nearzero = data_r_nz[data_r_nz > -0.1]
+            _, s = norm.fit(data_r_nearzero)
+
+            whitenoise_var = (psf_noise * s) ** 2
+
+            if whitenoise_var < 0:
+                whitenoise_var = 0.00000001
+        else:
+            whitenoise_var = None
+
         if (ratio == -1):
             r = random.uniform(0.1, 40)
         else:
@@ -124,7 +138,7 @@ def roou():
             data_PSF = photometry.add_gaussian_PSF(data_r, r * flux, gaussian_sigma)
 
         elif psf_type == 'sdss':
-            data_PSF = photometry.add_sdss_PSF(data_r, r * flux, obj_line)
+            data_PSF = photometry.add_sdss_PSF(data_r, r * flux, obj_line, whitenoise_var=whitenoise_var)
             if data_PSF is None:
                 print('Ignoring file %s' % i)
                 continue

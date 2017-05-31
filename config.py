@@ -27,7 +27,7 @@ class Config:
     elif 'darg_late_stage' in run_case:
         pixel_max_value = 4000
     pixel_min_value = -0.1
-    stretch_setup = '%s/%s_%s_ratio_40' % (run_case, stretch_type, scale_factor)
+    stretch_setup = '%s/%s_%s_ratio_20_noisy' % (run_case, stretch_type, scale_factor)
     sub_config = '%s/WGAN_%s' % (stretch_setup, attention_parameter)
     output_path = '%s/GAN_output' % sub_config
     result_path = output_path

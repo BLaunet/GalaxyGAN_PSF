@@ -47,7 +47,7 @@ def generate_sdss_psf(obj_line, psf_filename):
         print('colc = %s' % colc)
 
 
-def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
+def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=False):
     SDSS_psf_dir = '%s/psf/SDSS' % conf.run_case
     GALFIT_psf_dir = '%s/psf/GALFIT' % conf.run_case
     if not os.path.exists(SDSS_psf_dir):
@@ -68,6 +68,11 @@ def add_sdss_PSF(original, psf_flux, obj_line, multiple=False):
             return None
     else:
         psf = galfit.open_GALFIT_results(GALFIT_psf_filename, 'model')
+
+    # Whitenoise
+    if whitenoise_var:
+        whitenoise = np.random.normal(0, np.sqrt(whitenoise_var), (psf.shape[0], psf.shape[1]))
+        psf = psf + whitenoise
 
     center = [original.shape[1] // 2, original.shape[0] // 2]
     centroid_galaxy = find_centroid(original)
