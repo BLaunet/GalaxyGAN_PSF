@@ -3,10 +3,6 @@ import tensorflow as tf
 from config import Config as conf
 from utils import conv2d, deconv2d, linear, batch_norm, lrelu
 
-
-#
-#
-
 class CGAN(object):
     def __init__(self):
         self.image = tf.placeholder(tf.float32, shape=(1, conf.img_size, conf.img_size, conf.img_channel))
