@@ -1,14 +1,9 @@
 #!/usr/bin/python
 import argparse
-from config import Config as conf
-from data import *
-import scipy.misc
-from model import CGAN
-from utils import imsave
 import tensorflow as tf
-import numpy as np
-from utils import imsave
 from astropy.io import fits
+from data import *
+from model import CGAN
 
 parser = argparse.ArgumentParser()
 

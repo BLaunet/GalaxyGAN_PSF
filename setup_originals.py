@@ -1,24 +1,24 @@
 #!/usr/bin/python
 
-import os
-import pandas as pd
-import glob
 import argparse
-import numpy as np
+import glob
+import os
+
+import pandas as pd
+
 from config import Config as conf
 
 parser = argparse.ArgumentParser()
 
 
 def download_psfField(catalog):
-    psfTool_path = '/mnt/ds3lab/blaunet/readAtlasImages-v5_4_11/read_PSF'
-    download_main_path = 'https://dr13.sdss.org/sas/dr13/env/PHOTO_REDUX'
-    save_path = '/mnt/ds3lab/blaunet/psfFields'
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    download_main_dir = 'https://dr13.sdss.org/sas/dr13/env/PHOTO_REDUX'
+    psfFields_dir = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
+    save_dir = '/mnt/ds3lab/blaunet/psfFields'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
     im_ids = catalog['dr7ObjID'].tolist()
-
 
     psfs = []
     for i in im_ids:
@@ -30,22 +30,29 @@ def download_psfField(catalog):
         rerun = obj_line['rerun'].item()
         camcol = obj_line['camcol'].item()
         field = obj_line['field'].item()
-        psFfilename = 'psField-%06d-%d-%04d.fit'%(run, camcol, field)
-        if os.path.exists('%s/%s'%(save_path, psFfilename)):
+        psfFilename = 'psField-%06d-%d-%04d.fit' % (run, camcol, field)
+        psfField_path = '%d/%d/objcs/%d/%s' % (rerun, run, camcol, psfFilename)
+        if os.path.exists('%s/%s' % (save_dir, psfFilename)) or os.path.exists(
+                        '%s/%s' % (save_dir, psfField_path)) or os.path.exists(
+                        '%s/%s' % (psfFields_dir, psfField_path)):
             continue
-        psField = '%s/%d/%d/objcs/%d/%s'%(download_main_path, rerun, run, camcol, psFfilename)
-        print('Download %s in %s'%(psField,save_path))
-        os.system('cd %s; wget %s'%(save_path, psField))
+        psField_dl = '%s/%d/%d/objcs/%d/%s' % (download_main_dir, rerun, run, camcol, psfFilename)
+        psf_save_dir = '%s/%d/%d/objcs/%d' % (save_dir, rerun, run, camcol)
+        if not os.path.exists(psf_save_dir):
+            os.makedirs(psf_save_dir)
+        print('Download %s in %s' % (psField_dl, psf_save_dir))
+        os.system('cd %s; wget %s' % (psf_save_dir, psField_dl))
+
 
 def clean_dir(dir, catalog):
     objids = catalog['dr7ObjID'].tolist()
-    for f in glob.glob('%s/*'%dir):
+    for f in glob.glob('%s/*' % dir):
         if int(os.path.basename(f)[:-7]) not in objids:
-            print('Removing %s'%f)
+            print('Removing %s' % f)
             os.remove(f)
 
     for i in objids:
-        already_here = [int(os.path.basename(f)[:-7]) for f in glob.glob('%s/*'%dir)]
+        already_here = [int(os.path.basename(f)[:-7]) for f in glob.glob('%s/*' % dir)]
         if i in already_here:
             continue
         obj_line = catalog.loc[catalog['dr7ObjID'] == i]
@@ -54,9 +61,8 @@ def clean_dir(dir, catalog):
         except ValueError:
             print(obj_line)
             continue
-        print('Copying %s'%i)
-        os.system('cp %s %s'%(path, dir))
-
+        print('Copying %s' % i)
+        os.system('cp %s %s' % (path, dir))
 
 
 def setup():
@@ -67,7 +73,7 @@ def setup():
 
     if not args.train:
         try:
-            train_catalog = pd.read_csv(glob.glob("%s/catalog_train*"%conf.run_case)[0])
+            train_catalog = pd.read_csv(glob.glob("%s/catalog_train*" % conf.run_case)[0])
         except:
             train_catalog = pd.DataFrame()
             print('No train catalog found')
@@ -76,7 +82,7 @@ def setup():
 
     if not args.test:
         try:
-            test_catalog = pd.read_csv(glob.glob("%s/catalog_test*"%conf.run_case)[0])
+            test_catalog = pd.read_csv(glob.glob("%s/catalog_test*" % conf.run_case)[0])
         except:
             test_catalog = pd.DataFrame()
             print('No test catalog found')
@@ -84,17 +90,17 @@ def setup():
         test_catalog = pd.read_csv(args.test)
 
     if not train_catalog.empty:
-        fits_train = '%s/fits_train'%conf.run_case
+        fits_train = '%s/fits_train' % conf.run_case
         if not os.path.exists(fits_train):
             os.makedirs(fits_train)
-        #clean_dir(fits_train, train_catalog)
-        #download_psfField(train_catalog)
-
+        clean_dir(fits_train, train_catalog)
+        download_psfField(train_catalog)
     if not test_catalog.empty:
-        fits_test = '%s/fits_test'%conf.run_case
+        fits_test = '%s/fits_test' % conf.run_case
         if not os.path.exists(fits_test):
             os.makedirs(fits_test)
         clean_dir(fits_test, test_catalog)
         download_psfField(test_catalog)
+
 
 setup()

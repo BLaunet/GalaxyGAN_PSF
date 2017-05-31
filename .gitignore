@@ -22,12 +22,11 @@ save/*
 
 #Temp files
 \#*
+*.py~
 
 #Catalogs
 #.csv
 
 #Hidden files
-.*
-
-
+.idea/*
 *.ipynb
