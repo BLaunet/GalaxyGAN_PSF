@@ -18,7 +18,7 @@ def overwrite_config(file_path, z, factor, stretch, WGAN, gpu):
 
         else:
             newline = line
-        print(newline, end=' ')
+        print newline,
 
 
 main_path = '/mnt/ds3lab/blaunet'
