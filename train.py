@@ -1,23 +1,19 @@
-
-from config import Config as conf
-from data import *
-import scipy.misc
-from model import CGAN
-from utils import imsave
-import tensorflow as tf
-import numpy as np
 import time
-import os
+
+import tensorflow as tf
 from astropy.io import fits
-import math
+
+from data import *
+from model import CGAN
+
 
 def prepocess_train(img, cond):
-    #img = scipy.misc.imresize(img, [conf.adjust_size, conf.adjust_size])
-    #cond = scipy.misc.imresize(cond, [conf.adjust_size, conf.adjust_size])
-    #h1 = int(np.ceil(np.random.uniform(1e-2, conf.adjust_size - conf.train_size)))
-    #w1 = int(np.ceil(np.random.uniform(1e-2, conf.adjust_size - conf.adjust_size)))
-    #img = img[h1:h1 + conf.train_size, w1:w1 + conf.train_size]
-    #cond = cond[h1:h1 + conf.train_size, w1:w1 + conf.train_size]
+    # img = scipy.misc.imresize(img, [conf.adjust_size, conf.adjust_size])
+    # cond = scipy.misc.imresize(cond, [conf.adjust_size, conf.adjust_size])
+    # h1 = int(np.ceil(np.random.uniform(1e-2, conf.adjust_size - conf.train_size)))
+    # w1 = int(np.ceil(np.random.uniform(1e-2, conf.adjust_size - conf.adjust_size)))
+    # img = img[h1:h1 + conf.train_size, w1:w1 + conf.train_size]
+    # cond = cond[h1:h1 + conf.train_size, w1:w1 + conf.train_size]
 
     if np.random.random() > 0.5:
         img = np.fliplr(img)
@@ -25,20 +21,20 @@ def prepocess_train(img, cond):
 
     img = img.reshape(1, conf.train_size, conf.train_size, conf.img_channel)
     cond = cond.reshape(1, conf.train_size, conf.train_size, conf.img_channel)
-    return img,cond
+    return img, cond
+
 
 def prepocess_test(img, cond):
-    #img = scipy.misc.imresize(img, [conf.train_size, conf.train_size])
-    #cond = scipy.misc.imresize(cond, [conf.train_size, conf.train_size])
+    # img = scipy.misc.imresize(img, [conf.train_size, conf.train_size])
+    # cond = scipy.misc.imresize(cond, [conf.train_size, conf.train_size])
     img = img.reshape(1, conf.train_size, conf.train_size, conf.img_channel)
     cond = cond.reshape(1, conf.train_size, conf.train_size, conf.img_channel)
-    #img = img/127.5 - 1.
-    #cond = cond/127.5 - 1.
-    return img,cond
+    # img = img/127.5 - 1.
+    # cond = cond/127.5 - 1.
+    return img, cond
+
 
 def train():
-
-
     data = load_data()
     model = CGAN()
 
@@ -69,18 +65,19 @@ def train():
                 pass
         for epoch in xrange(start_epoch, conf.max_epoch):
             train_data = data["train"]()
-            for img, cond, _  in train_data:
+            for img, cond, _ in train_data:
                 img, cond = prepocess_train(img, cond)
-                _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
-                _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image:img, model.cond:cond})
-                _, M, flux = sess.run([g_opt, model.g_loss, model.delta], feed_dict={model.image:img, model.cond:cond})
+                _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image: img, model.cond: cond})
+                _, m = sess.run([d_opt, model.d_loss], feed_dict={model.image: img, model.cond: cond})
+                _, M, flux = sess.run([g_opt, model.g_loss, model.delta],
+                                      feed_dict={model.image: img, model.cond: cond})
                 counter += 1
-                print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f, flux: %.8f"\
-                      % (counter, time.time() - start_time, m, M, flux)
+                print("Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f, flux: %.8f" \
+                      % (counter, time.time() - start_time, m, M, flux))
             if (epoch + 1) % conf.save_per_epoch == 0:
-                #save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))
+                # save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))
                 save_path = saver.save(sess, conf.save_path + "/model.ckpt")
-                print "Model at epoch %s saved in file: %s" % (epoch+1, save_path)
+                print("Model at epoch %s saved in file: %s" % (epoch + 1, save_path))
 
                 log = open(conf.save_path + "/log", "w")
                 log.write(str(epoch + 1))
@@ -88,22 +85,23 @@ def train():
 
                 test_data = data["test"]()
                 for img, cond, name in test_data:
-                    name = name.replace('-r.npy','')
+                    name = name.replace('-r.npy', '')
                     pimg, pcond = prepocess_test(img, cond)
-                    gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
+                    gen_img = sess.run(model.gen_img, feed_dict={model.image: pimg, model.cond: pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
 
-                    fits_recover = conf.unstretch(gen_img[:,:,0])
+                    fits_recover = conf.unstretch(gen_img[:, :, 0])
                     hdu = fits.PrimaryHDU(fits_recover)
-                    save_dir = '%s/epoch_%s/fits_output'%(out_dir, epoch+1)
+                    save_dir = '%s/epoch_%s/fits_output' % (out_dir, epoch + 1)
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
-                    filename = '%s/%s-r.fits'%(save_dir,name)
+                    filename = '%s/%s-r.fits' % (save_dir, name)
                     if os.path.exists(filename):
                         os.remove(filename)
                     hdu.writeto(filename)
 
+
 if __name__ == "__main__":
-    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-    os.environ["CUDA_VISIBLE_DEVICES"]=str(conf.use_gpu)
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(conf.use_gpu)
     train()

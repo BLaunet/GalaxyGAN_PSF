@@ -36,7 +36,12 @@ def extract_catalog():
 
     new_catalog = pd.read_csv('%s/dr13/catalogue/SDSS_Master_Table.csv'%source_dir).filter(items=wanted_fields)
     new_catalog=new_catalog[(new_catalog['Z']>zmin) & (new_catalog['Z']<zmax)]
-    new_catalog['fits_path'] = fits_dir+'/'+new_catalog['run'].apply(str)+'/'+new_catalog['camcol'].apply(str)+'/'+new_catalog['field'].apply(str)+'/'+new_catalog['dr7ObjID'].apply(str)+'-r.fits'
+    new_catalog['fits_path'] = fits_dir \
+                               +'/'+new_catalog['run'].apply(str) \
+                               +'/'+new_catalog['camcol'].apply(str) \
+                               +'/'+new_catalog['field'].apply(str) \
+                               +'/'+new_catalog['dr7ObjID'].apply(str) \
+                               +'-r.fits'
     new_catalog = new_catalog[new_catalog['fits_path'].apply(os.path.exists)]
 
     if new_catalog.shape[0] < (train_size+test_size):

@@ -27,5 +27,5 @@ save/*
 #.csv
 
 #Hidden files
-.*
+.idea/*
 *.ipynb
