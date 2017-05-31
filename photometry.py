@@ -68,18 +68,22 @@ def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=F
             return None
     else:
         psf = galfit.open_GALFIT_results(GALFIT_psf_filename, 'model')
-
+        
+    # Scaling up
+    psf = psf / psf.sum()
+    psf = psf * psf_flux
+    
+    center = [original.shape[1] // 2, original.shape[0] // 2]
+    centroid_galaxy = find_centroid(original)
+    centroid_PSF = find_centroid(psf)
+    
     # Whitenoise
     if whitenoise_var:
         whitenoise = np.random.normal(0, np.sqrt(whitenoise_var), (psf.shape[0], psf.shape[1]))
+        print(whitenoise_var)
         psf = psf + whitenoise
-
-    center = [original.shape[1] // 2, original.shape[0] // 2]
-    centroid_galaxy = find_centroid(original)
-    # centroid_galaxy = [211,211]
-    centroid_PSF = find_centroid(psf)
-    # centroid_PSF = [25.0,25.0]
-
+     
+    
     composite_image = np.copy(original)
 
     k = 3 if multiple else 1
@@ -89,13 +93,12 @@ def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=F
     ps_x = int(round(centroid_PSF[0]))
     ps_y = int(round(centroid_PSF[1]))
 
-    psf = psf / psf.sum()
     for x in range(0, psf.shape[1]):
         for y in range(0, psf.shape[0]):
             x_rel = gal_x - ps_x + x
             y_rel = gal_y - ps_y + y
             if x_rel >= 0 and y_rel >= 0 and x_rel < original.shape[1] and y_rel < original.shape[0]:
-                composite_image[y_rel, x_rel] += psf_flux * psf[y, x]
+                composite_image[y_rel, x_rel] += psf[y, x]
 
     return composite_image
 

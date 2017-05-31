@@ -6,10 +6,10 @@ class Config:
     # Redshift
     redshift = 0.1
     stretch_type = 'pow'
-    scale_factor = 8
+    scale_factor = 5
     attention_parameter = 0.05
     # model_to_use = 'z_0.1'
-    use_gpu = 6
+    use_gpu = 0
 
     run_case = "/mnt/ds3lab/blaunet/results/z_%s" % redshift
     # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"

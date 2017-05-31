@@ -36,8 +36,6 @@ def crop(img, size):
 
 
 def roou():
-    global catalog_path, catalog_path
-    print(conf.__dict__)
     is_demo = 0
     random.seed(42)
 
@@ -58,7 +56,7 @@ def roou():
     mode = int(args.mode)
     cropsize = int(args.crop)
     psf_type = args.psf
-    psf_noise = 2  # sigma
+    psf_noise = 3  # sigma
 
     if mode == 1:
         input = '%s/fits_test' % conf.run_case
@@ -69,11 +67,9 @@ def roou():
     print('Input files : %s' % input)
     catalog = pandas.read_csv(catalog_path)
 
-    # catalog = catalog.iloc[0]
-
     train_folder = '%s/train' % args.figure
     test_folder = '%s/test' % args.figure
-    raw_test_folder = '%s/fits_input_ratio_20' % conf.run_case
+    raw_test_folder = '%s/fits_input_ratio_20_noisy' % conf.run_case
     # GAN_input_path = '%s/%s_%s/npy_input'%(conf.run_case, conf.stretch_type, conf.scale_factor)
 
     if not os.path.exists(train_folder):
@@ -126,7 +122,7 @@ def roou():
             whitenoise_var = None
 
         if (ratio == -1):
-            r = random.uniform(0.1, 40)
+            r = random.uniform(0.1, 20)
         else:
             r = ratio
         print("ratio = %s" % r)
