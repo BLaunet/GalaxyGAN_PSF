@@ -22,6 +22,7 @@ save/*
 
 #Temp files
 \#*
+*.py~
 
 #Catalogs
 #.csv
