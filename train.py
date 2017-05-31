@@ -1,3 +1,4 @@
+
 from config import Config as conf
 from data import *
 import scipy.misc
@@ -7,6 +8,8 @@ import tensorflow as tf
 import numpy as np
 import time
 import os
+from astropy.io import fits
+import math
 
 def prepocess_train(img, cond):
     #img = scipy.misc.imresize(img, [conf.adjust_size, conf.adjust_size])
@@ -34,7 +37,7 @@ def prepocess_test(img, cond):
     return img,cond
 
 def train():
-    
+
 
     data = load_data()
     model = CGAN()
@@ -46,24 +49,24 @@ def train():
 
     counter = 0
     start_time = time.time()
+    out_dir = conf.result_path
     if not os.path.exists(conf.save_path):
         os.makedirs(conf.save_path)
-    if not os.path.exists(conf.output_path):
-        os.makedirs(conf.output_path)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
     start_epoch = 0
-    try:
-        log = open(conf.save_path + "/log")
-        start_epoch = int(log.readline())
-        log.close()
-    except:
-        pass
-
     with tf.Session() as sess:
         if conf.model_path == "":
             sess.run(tf.global_variables_initializer())
         else:
             saver.restore(sess, conf.model_path)
+            try:
+                log = open(conf.save_path + "/log")
+                start_epoch = int(log.readline())
+                log.close()
+            except:
+                pass
         for epoch in xrange(start_epoch, conf.max_epoch):
             train_data = data["train"]()
             for img, cond, _  in train_data:
@@ -75,22 +78,30 @@ def train():
                 print "Iterate [%d]: time: %4.4f, d_loss: %.8f, g_loss: %.8f, flux: %.8f"\
                       % (counter, time.time() - start_time, m, M, flux)
             if (epoch + 1) % conf.save_per_epoch == 0:
+                #save_path = saver.save(sess, conf.data_path + "/checkpoint/" + "model_%d.ckpt" % (epoch+1))
                 save_path = saver.save(sess, conf.save_path + "/model.ckpt")
-                print "Model at epoch %s saved in file: %s" % (epoch, save_path)
+                print "Model at epoch %s saved in file: %s" % (epoch+1, save_path)
 
                 log = open(conf.save_path + "/log", "w")
                 log.write(str(epoch + 1))
                 log.close()
 
                 test_data = data["test"]()
-                test_count = 0
                 for img, cond, name in test_data:
-                    test_count += 1
+                    name = name.replace('-r.npy','')
                     pimg, pcond = prepocess_test(img, cond)
                     gen_img = sess.run(model.gen_img, feed_dict={model.image:pimg, model.cond:pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
-                    image = np.concatenate((gen_img, cond), axis=1)
-                    np.save(conf.output_path + "/" + name,image)
+
+                    fits_recover = conf.unstretch(gen_img[:,:,0])
+                    hdu = fits.PrimaryHDU(fits_recover)
+                    save_dir = '%s/epoch_%s/fits_output'%(out_dir, epoch+1)
+                    if not os.path.exists(save_dir):
+                        os.makedirs(save_dir)
+                    filename = '%s/%s-r.fits'%(save_dir,name)
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                    hdu.writeto(filename)
 
 if __name__ == "__main__":
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152

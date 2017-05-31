@@ -1,4 +1,4 @@
-import math 
+import math
 from config import Config as conf
 from utils import conv2d, deconv2d, linear, batch_norm, lrelu
 import tensorflow as tf
@@ -27,7 +27,7 @@ class CGAN(object):
 
         self.d_loss = pos_loss + neg_loss
         self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.ones_like(neg))) + \
-                      0.01 * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
+                      conf.attention_parameter * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
                       conf.L1_lambda * tf.reduce_mean(tf.abs(self.image_00 - self.g_img_00))
 
         t_vars = tf.trainable_variables()
@@ -69,15 +69,15 @@ class CGAN(object):
             d2 = deconv2d(tf.nn.relu(d1), [1,num[2],num[2],feature*8], name="d2")
             d2 = tf.concat([tf.nn.dropout(batch_norm(d2, "d2"), 0.5), e6], 3)
             d3 = deconv2d(tf.nn.relu(d2), [1,num[3],num[3],feature*8], name="d3")
-            d3 = tf.concat([tf.nn.dropout(batch_norm(d3, "d3"), 0.5), e5], 3) 
+            d3 = tf.concat([tf.nn.dropout(batch_norm(d3, "d3"), 0.5), e5], 3)
             d4 = deconv2d(tf.nn.relu(d3), [1,num[4],num[4],feature*8], name="d4")
             d4 = tf.concat([batch_norm(d4, "d4"), e4], 3)
             d5 = deconv2d(tf.nn.relu(d4), [1,num[5],num[5],feature*4], name="d5")
-            d5 = tf.concat([batch_norm(d5, "d5"), e3], 3) 
+            d5 = tf.concat([batch_norm(d5, "d5"), e3], 3)
             d6 = deconv2d(tf.nn.relu(d5), [1,num[6],num[6],feature*2], name="d6")
             d6 = tf.concat([batch_norm(d6, "d6"), e2], 3)
             d7 = deconv2d(tf.nn.relu(d6), [1,num[7],num[7],feature], name="d7")
-            d7 = tf.concat([batch_norm(d7, "d7"), e1], 3) 
+            d7 = tf.concat([batch_norm(d7, "d7"), e1], 3)
             d8 = deconv2d(tf.nn.relu(d7), [1,num[8],num[8],conf.img_channel], name="d8")
 
             return tf.nn.tanh(d8)

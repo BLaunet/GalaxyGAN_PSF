@@ -10,13 +10,12 @@ def load(path):
         img, cond = all[:,:conf.img_size], all[:,conf.img_size:]
         yield(img,cond,i)
 
-def load_data():
+def load_data(path=conf.data_path):
     data = dict()
-    data["train"] = lambda: load(conf.data_path + "/train")
+    data["train"] = lambda: load(path + "/train")
     # data["val"] = load(conf.data_path + "/val")
-    data["test"] = lambda: load(conf.data_path + "/test")
+    data["test"] = lambda: load(path + "/test")
     return data
-
 
 
 

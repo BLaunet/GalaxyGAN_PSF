@@ -12,16 +12,6 @@ from astropy.io import fits
 
 parser = argparse.ArgumentParser()
 
-def prepocess_test(img, cond):
-
-    #img = scipy.misc.imresize(img, [conf.train_size, conf.train_size])
-    #cond = scipy.misc.imresize(cond, [conf.train_size, conf.train_size])
-    img = img.reshape(1, conf.img_size, conf.img_size, conf.img_channel)
-    cond = cond.reshape(1, conf.img_size, conf.img_size, conf.img_channel)
-    #img = img/127.5 - 1.
-    #cond = cond/127.5 - 1.
-    return img,cond
-
 def test():
 
     parser.add_argument("--input", default=conf.data_path)
