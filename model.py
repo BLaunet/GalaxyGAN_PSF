@@ -5,25 +5,23 @@ from utils import conv2d, deconv2d, linear, batch_norm, lrelu
 
 class CGAN(object):
     def __init__(self):
-        self.image = tf.placeholder(tf.float32, shape=(1, conf.img_size, conf.img_size, conf.img_channel))
-        self.cond = tf.placeholder(tf.float32, shape=(1, conf.img_size, conf.img_size, conf.img_channel))
+        self.image = tf.placeholder(tf.float32, shape=(1, conf.train_size, conf.train_size, conf.img_channel))
+        self.cond = tf.placeholder(tf.float32, shape=(1, conf.train_size, conf.train_size, conf.img_channel))
+
         self.gen_img = self.generator(self.cond)
 
-        self.image_00 = tf.slice(self.image, [0, 187, 187, 0], [1, 50, 50, 1])
-        self.cond_00 = tf.slice(self.cond, [0, 187, 187, 0], [1, 50, 50, 1])
-        self.g_img_00 = tf.slice(self.gen_img, [0, 187, 187, 0], [1, 50, 50, 1])
-
-        pos = self.discriminator(self.image_00, self.cond_00, False)
-        neg = self.discriminator(self.g_img_00, self.cond_00, True)
+        pos = self.discriminator(self.image, self.cond, False)
+        neg = self.discriminator(self.gen_img, self.cond, True)
         pos_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pos, labels=tf.ones_like(pos)))
         neg_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.zeros_like(neg)))
 
         self.delta = tf.square(tf.reduce_mean(self.image) - (tf.reduce_mean(self.gen_img)))
 
         self.d_loss = pos_loss + neg_loss
+
+        # with regularization
         self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=neg, labels=tf.ones_like(neg))) + \
-                      conf.attention_parameter * conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + \
-                      conf.L1_lambda * tf.reduce_mean(tf.abs(self.image_00 - self.g_img_00))
+                      conf.L1_lambda * tf.reduce_mean(tf.abs(self.image - self.gen_img)) + conf.sum_lambda * self.delta
 
         t_vars = tf.trainable_variables()
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
