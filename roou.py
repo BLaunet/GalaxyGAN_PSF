@@ -16,16 +16,6 @@ from config import Config as conf
 parser = argparse.ArgumentParser()
 
 
-def adjust(origin):
-    img = origin.copy()
-    img[img > 4] = 4
-    img[img < -0.1] = -0.1
-    MIN = np.min(img)
-    MAX = np.max(img)
-    img = np.arcsinh(10 * (img - MIN) / (MAX - MIN)) / 3
-    return img
-
-
 def crop(img, size):
     cropped = img.copy()
     center = cropped.shape[0] / 2
@@ -36,40 +26,38 @@ def crop(img, size):
 
 
 def roou():
-    is_demo = 0
     random.seed(42)
 
-    parser.add_argument("--fwhm", default="1.4")
-    parser.add_argument("--ratio", default="-1")
     parser.add_argument("--input",
                         default="%s/fits_test" % conf.run_case)
-    parser.add_argument("--figure", default=conf.data_path)
+    parser.add_argument("--output", default=conf.data_path)
     parser.add_argument("--mode", default="1")
     parser.add_argument("--crop", default="0")
     parser.add_argument('--psf', default='sdss')
     args = parser.parse_args()
 
-    fwhm = float(args.fwhm)
-    ratio = float(args.ratio)
     input = args.input
-    figure = args.figure
+    output = args.output
     mode = int(args.mode)
     cropsize = int(args.crop)
     psf_type = args.psf
-    psf_noise = 3  # sigma
 
-    if mode == 1:
+    #Conf params
+    psf_noise = conf.noise  # sigma
+    ratio_max = conf.max_contrast_ratio
+
+    if mode == 1: #Test set
         input = '%s/fits_test' % conf.run_case
         catalog_path = glob.glob('%s/catalog_test*' % conf.run_case)[0]
-    elif mode == 0:
+    elif mode == 0: #Train set
         input = '%s/fits_train' % conf.run_case
         catalog_path = glob.glob('%s/catalog_train*' % conf.run_case)[0]
     print('Input files : %s' % input)
     catalog = pandas.read_csv(catalog_path)
 
-    train_folder = '%s/train' % args.figure
-    test_folder = '%s/test' % args.figure
-    raw_test_folder = '%s/fits_input_ratio_20_noisy' % conf.run_case
+    train_folder = '%s/train' % output
+    test_folder = '%s/test' % output
+    raw_test_folder = '%s/fits_input%s' % (conf.run_case, conf.ext)
     # GAN_input_path = '%s/%s_%s/npy_input'%(conf.run_case, conf.stretch_type, conf.scale_factor)
 
     if not os.path.exists(train_folder):
@@ -109,7 +97,7 @@ def roou():
         gaussian_sigma = fwhm_use / 2.355
 
         # add white noise
-        if psf_noise:
+        if psf_noise != 0:
             data_r_nz = data_r[data_r < 0.1]
             data_r_nearzero = data_r_nz[data_r_nz > -0.1]
             _, s = norm.fit(data_r_nearzero)
@@ -121,10 +109,7 @@ def roou():
         else:
             whitenoise_var = None
 
-        if (ratio == -1):
-            r = random.uniform(0.1, 20)
-        else:
-            r = ratio
+        r = random.uniform(0.1, ratio_max)
         print("ratio = %s" % r)
 
         if psf_type == 'step':
@@ -145,10 +130,10 @@ def roou():
 
         print('data_r centroid : %s' % photometry.find_centroid(data_r))
         print('data_PSF centroid : %s' % photometry.find_centroid(data_PSF))
-        figure_original = np.ones((data_r.shape[0], data_r.shape[1], 1))
+        figure_original = np.ones((data_r.shape[0], data_r.shape[1], conf.img_channel))
         figure_original[:, :, 0] = data_r
 
-        figure_with_PSF = np.ones((data_r.shape[0], data_r.shape[1], 1))
+        figure_with_PSF = np.ones((data_r.shape[0], data_r.shape[1], conf.img_channel))
 
         # Renormalization
         figure_with_PSF[:, :, 0] = data_PSF  # *data_r.sum()/data_PSF.sum()
@@ -187,10 +172,10 @@ def roou():
         figure_combined[:, figure_original.shape[1]:2 * figure_original.shape[1], :] = figure_with_PSF[:, :, :]
 
         if mode:
-            mat_path = '%s/test/%s-r.npy' % (figure, image_id)
+            mat_path = '%s/test/%s-r.npy' % (output, image_id)
             # np.save('%s/%s-r.npy'%(GAN_input_path,image_id), figure_combined)
         else:
-            mat_path = '%s/train/%s-r.npy' % (figure, image_id)
+            mat_path = '%s/train/%s-r.npy' % (output, image_id)
         np.save(mat_path, figure_combined)
     print("%s images have not been used because there were no corresponding objects in the catalog" % not_found)
 
