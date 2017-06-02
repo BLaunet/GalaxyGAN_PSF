@@ -31,9 +31,9 @@ z_list = [0.2]
 stretch_list = ['pow']
 WGAN_list = [0.05]
 ratio_list = [20]
-noise_list = [0]
+noise_list = [10]
 
-gpu = 7
+gpu = 0
 
 for z in z_list:
     for scale_f in scale_factor_list:
@@ -52,12 +52,12 @@ for z in z_list:
                             overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu, contrast_ratio=ratio, noise=noise)
                             os.system('. ../my_env/bin/activate; python -u roou.py | tee tmp.log')
 
-                        overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
+                        
                         if not (glob.glob('%s/train/*' % npy_input_dir)):
-                            overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
+                            overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu, contrast_ratio=ratio, noise=noise)
                             os.system('. ../my_env/bin/activate; python -u roou.py --mode 0| tee tmp.log')
 
-                        overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu)
+                        overwrite_config(file_path, z=z, factor=scale_f, stretch=stretch, WGAN=WGAN, gpu=gpu, contrast_ratio=ratio, noise=noise)
                         os.system(
                             '. ../my_env/bin/activate; python -u train.py | tee %s/results/z_%s/%s_%s%s/WGAN_%s.log' % (
                                 main_path, z, stretch, scale_f, ext, WGAN))

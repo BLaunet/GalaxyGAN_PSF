@@ -92,7 +92,8 @@ def roou():
         rfits.close()
 
         flux = obj_line['cModelFlux_r'].item()
-
+        
+        fwhm = 1.4
         fwhm_use = fwhm / 0.396
         gaussian_sigma = fwhm_use / 2.355
 

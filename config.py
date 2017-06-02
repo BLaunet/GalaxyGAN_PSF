@@ -4,13 +4,15 @@ import numpy as np
 
 class Config:
     # Training Set Parameters
-    redshift = 0.1
+    redshift = 0.2
     stretch_type = 'pow'
-    scale_factor = 5
+    scale_factor = 8
     attention_parameter = 0.05
     max_contrast_ratio = 20
-    noise = 0
+    noise = 10
 
+    run_case = "/mnt/ds3lab/blaunet/results/z_%s" % redshift
+        # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
     # Scaling
     if '0.01' in run_case:
         pixel_max_value = 41100
