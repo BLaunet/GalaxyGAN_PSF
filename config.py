@@ -3,16 +3,16 @@ import numpy as np
 
 
 class Config:
-    # Redshift
-    redshift = 0.1
+    # Training Set Parameters
+    redshift = 0.2
     stretch_type = 'pow'
     scale_factor = 8
     attention_parameter = 0.05
-    # model_to_use = 'z_0.1'
-    use_gpu = 6
+    max_contrast_ratio = 20
+    noise = 10
 
     run_case = "/mnt/ds3lab/blaunet/results/z_%s" % redshift
-    # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
+        # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
     # Scaling
     if '0.01' in run_case:
         pixel_max_value = 41100
@@ -27,23 +27,41 @@ class Config:
     elif 'darg_late_stage' in run_case:
         pixel_max_value = 4000
     pixel_min_value = -0.1
-    stretch_setup = '%s/%s_%s_ratio_40' % (run_case, stretch_type, scale_factor)
+
+    ## Directory Tree setup
+    run_case = "/mnt/ds3lab/blaunet/results/z_%s" % redshift
+        # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
+    ext = ''
+    if max_contrast_ratio != 10:
+        ext += '_ratio_%s' % max_contrast_ratio
+    if noise !=0:
+        ext += '_noise_%s' % noise
+
+    stretch_setup = '%s/%s_%s%s' % (run_case, stretch_type, scale_factor, ext)
     sub_config = '%s/WGAN_%s' % (stretch_setup, attention_parameter)
     output_path = '%s/GAN_output' % sub_config
     result_path = output_path
-    # result_path = '%s/%s_model'%(output_path, model_to_use)
-    # used for training
+
     data_path = "%s/npy_input" % stretch_setup
     save_path = "%s/model" % sub_config
+
+    ## GAN Parameters
+    use_gpu = 0
     # if you are not going to train from the very beginning, change this path to the existing model path
     model_path = ''  # "/mnt/ds3lab/blaunet/results/%s/asinh_20/model/model.ckpt"%(model_to_use)
     start_epoch = 0
+    save_per_epoch = 5
+    max_epoch = 50
 
-    # changed to FITs, mainly refer to the size
     img_size = 424
     train_size = 424
     img_channel = 1
     conv_channel_base = 64
+
+    learning_rate = 0.0002
+    beta1 = 0.5
+    L1_lambda = 100
+    sum_lambda = 0  ####
 
     @classmethod
     def stretch(cls, data):
@@ -89,10 +107,3 @@ class Config:
 
         else:
             raise ValueError('Unknown stretch_type : %s' % cls.stretch_type)
-
-    learning_rate = 0.0002
-    beta1 = 0.5
-    max_epoch = 50
-    L1_lambda = 100
-    sum_lambda = 0  ####
-    save_per_epoch = 5
