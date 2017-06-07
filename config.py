@@ -4,7 +4,7 @@ import numpy as np
 
 class Config:
     # Training Set Parameters
-    redshift = 0.2
+    redshift = 0.1
     stretch_type = 'pow'
     scale_factor = 8
     attention_parameter = 0.05
@@ -36,6 +36,7 @@ class Config:
         ext += '_ratio_%s' % max_contrast_ratio
     if noise !=0:
         ext += '_noise_%s' % noise
+    ext += '_stars'
 
     stretch_setup = '%s/%s_%s%s' % (run_case, stretch_type, scale_factor, ext)
     sub_config = '%s/WGAN_%s' % (stretch_setup, attention_parameter)
