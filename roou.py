@@ -43,7 +43,8 @@ def roou():
     psf_type = args.psf
 
     #Conf params
-    psf_noise = conf.noise  # sigma
+    #psf_noise = conf.noise  # sigma
+    psf_noise = 1
     ratio_max = conf.max_contrast_ratio
 
     if mode == 1: #Test set
@@ -120,7 +121,8 @@ def roou():
             data_PSF = photometry.add_gaussian_PSF(data_r, r * flux, gaussian_sigma)
 
         elif psf_type == 'sdss':
-            data_PSF = photometry.add_sdss_PSF(data_r, r * flux, obj_line, whitenoise_var=whitenoise_var)
+            tmpdir = '/mnt/ds3lab/blaunet/tmp_for_SExtractor/'
+            data_PSF = photometry.add_sdss_PSF(data_r, r * flux, obj_line, whitenoise_var=whitenoise_var, sexdir=tmpdir)
             if data_PSF is None:
                 print('Ignoring file %s' % i)
                 continue

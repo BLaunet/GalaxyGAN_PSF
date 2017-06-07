@@ -7,6 +7,93 @@ from photutils import centroid_com
 import galfit
 from config import Config as conf
 
+from shutil import copyfile
+sex = 'sextractor'
+
+
+def calc_zeropoint(exposure_time, calibration_factor):
+    return 22.5 + 2.5 * np.log10(1. / exposure_time / calibration_factor)
+
+
+def SExtractor_get_stars(path, filename, magzero, threshold, saturation_level, gain, pixel_scale, fwhm):
+    file_res = open(path + 'sex_stars.conf', "w")
+    file_res.write('#-------------------------------- Catalog ------------------------------------\n\n')
+    file_res.write('CATALOG_NAME     sex_stars.cat        # name of the output catalog\n')
+    file_res.write('CATALOG_TYPE     ASCII_HEAD     # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,\n')
+    file_res.write('                                # ASCII_VOTABLE, FITS_1.0 or FITS_LDAC \n')
+    file_res.write('PARAMETERS_NAME  {}{}           # name of the file containing catalog contents \n\n'.format(path, 'sex_stars.param'))
+    file_res.write('#------------------------------- Extraction ----------------------------------\n\n')
+    file_res.write('DETECT_TYPE      CCD            # CCD (linear) or PHOTO (with gamma correction)\n')
+    file_res.write('DETECT_MINAREA   5              # min. # of pixels above threshold\n')
+    file_res.write('DETECT_THRESH    5              # <sigmas> or <threshold>,<ZP> in mag.arcsec-2\n')
+    file_res.write('ANALYSIS_THRESH  {}             # <sigmas> or <threshold>,<ZP> in mag.arcsec-2\n\n'.format(threshold))
+    file_res.write('FILTER           Y              # apply filter for detection (Y or N)?\n')
+    file_res.write('FILTER_NAME      /mnt/ds3lab/dostark/sextractor_defaultfiles/default.conv   # name of the file containing the filter\n\n')
+    file_res.write('DEBLEND_NTHRESH  32             # Number of deblending sub-thresholds \n')
+    file_res.write('DEBLEND_MINCONT  0.005          # Minimum contrast parameter for deblending\n\n')
+    file_res.write('CLEAN            Y              # Clean spurious detections? (Y or N)?\n')
+    file_res.write('CLEAN_PARAM      1.0            # Cleaning efficiency)\n\n')
+    file_res.write('MASK_TYPE        CORRECT        # type of detection MASKing: can be one of\n\n')
+    file_res.write('                                # NONE, BLANK or CORRECT\n\n')
+    file_res.write('#------------------------------ Photometry -----------------------------------\n\n')
+    file_res.write('PHOT_APERTURES   5              # MAG_APER aperture diameter(s) in pixels\n')
+    file_res.write('PHOT_AUTOPARAMS  2.5, 3.5       # MAG_AUTO parameters: <Kron_fact>,<min_radius>\n')
+    file_res.write('PHOT_PETROPARAMS 2.0, 3.5       # MAG_PETRO parameters: <Petrosian_fact>,\n')
+    file_res.write('                                # <min_radius>\n\n')
+    file_res.write('SATUR_LEVEL      {}             # level (in ADUs) at which arises saturation\n'.format(saturation_level))
+    file_res.write('SATUR_KEY        SATURATE       # keyword for saturation level (in ADUs)\n\n')
+    file_res.write('MAG_ZEROPOINT    {}             # magnitude zero-point\n'.format(magzero))
+    file_res.write('MAG_GAMMA        4.0            # gamma of emulsion (for photographic scans)\n')
+    file_res.write('GAIN             {}             # detector gain in e-/ADU\n'.format(gain))
+    file_res.write('GAIN_KEY         GAIN           # keyword for detector gain in e-/ADU\n')
+    file_res.write('PIXEL_SCALE      {}             # size of pixel in arcsec (0=use FITS WCS info)\n\n'.format(pixel_scale))
+    file_res.write('# ------------------------- Star/Galaxy Separation ----------------------------\n\n')
+    file_res.write('SEEING_FWHM      {}             # stellar FWHM in arcsec\n'.format(fwhm))
+    file_res.write('STARNNW_NAME     /mnt/ds3lab/dostark/sextractor_defaultfiles/default.nnw  # Neural-Network_Weight table filename\n\n')
+    file_res.write('# ------------------------------ Background -----------------------------------\n\n')
+    file_res.write('BACK_SIZE        64              # Background mesh: <size> or <width>,<height>\n')
+    file_res.write('BACK_FILTERSIZE  3               # Background filter: <size> or <width>,<height>\n\n')
+    file_res.write('BACKPHOTO_TYPE   GLOBAL          # can be GLOBAL or LOCAL\n\n')
+    file_res.write('#------------------------------ Check Image ----------------------------------\n\n')
+    file_res.write('CHECKIMAGE_TYPE  NONE            # can be NONE, BACKGROUND, BACKGROUND_RMS,\n')
+    file_res.write('                                 # MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND,\n')
+    file_res.write('                                 # FILTERED, OBJECTS, -OBJECTS, SEGMENTATION,\n')
+    file_res.write('                                 # or APERTURES\n')
+    file_res.write('CHECKIMAGE_NAME  /mnt/ds3lab/dostark/sextractor_defaultfiles/check.fits     # Filename for the check-image\n\n')
+    file_res.write('#--------------------- Memory (change with caution!) -------------------------\n\n')
+    file_res.write('MEMORY_OBJSTACK  3000            # number of objects in stack\n')
+    file_res.write('MEMORY_PIXSTACK  300000          # number of pixels in stack\n')
+    file_res.write('MEMORY_BUFSIZE   1024            # number of lines in buffer\n\n')
+    file_res.write('#----------------------------- Miscellaneous ---------------------------------\n\n')
+    file_res.write('VERBOSE_TYPE     NORMAL          # can be QUIET, NORMAL or FULL\n')
+    file_res.write('HEADER_SUFFIX    .head           # Filename extension for additional headers\n')
+    file_res.write('WRITE_XML        N               # Write XML file (Y/N)?\n')
+    file_res.write('XML_NAME         sex.xml         # Filename for XML output\n')
+    file_res.close()
+
+    file_param = open(path+'sex_stars.param', "w")
+    file_param.write('NUMBER\n')
+    file_param.write('X_IMAGE\n')
+    file_param.write('Y_IMAGE\n')
+    file_param.write('FLUX_AUTO\n')
+    file_param.write('CLASS_STAR\n')
+    file_param.close()
+    os.system('cd '+path+ ' ; '+sex+' -c sex_stars.conf '+filename)
+    data = np.genfromtxt(path+'sex_stars.cat',dtype=None,comments='#', names=['number', 'x', 'y', 'flux', 'classifier'])
+    x_data = np.array(data['x'])
+    y_data = np.array(data['y'])
+    fluxes = np.array(data['flux'])
+    star_class_data = np.array(data['classifier'])
+    mask = (x_data >= 5 * fwhm / pixel_scale) & (y_data >= 5 * fwhm / pixel_scale) & (
+        x_data <= image.shape[1] - 5 * fwhm / pixel_scale) & (y_data <= image.shape[0] - 5 * fwhm / pixel_scale)
+    mask_negative = np.invert(mask)
+    star_class_data[mask_negative] *= 0.0
+    starmask = star_class_data >= 0.95
+    stars_xcoords = x_data[starmask]
+    stars_ycoords = y_data[starmask]
+    fluxes = fluxes[starmask]
+    return stars_xcoords, stars_ycoords, fluxes
+
 
 def generate_sdss_psf(obj_line, psf_filename):
     home_dir = '/mnt/ds3lab/blaunet'
@@ -47,7 +134,7 @@ def generate_sdss_psf(obj_line, psf_filename):
         print('colc = %s' % colc)
 
 
-def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=False):
+def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=False, sexdir = None):
     SDSS_psf_dir = '%s/psf/SDSS' % conf.run_case
     GALFIT_psf_dir = '%s/psf/GALFIT' % conf.run_case
     if not os.path.exists(SDSS_psf_dir):
@@ -68,10 +155,57 @@ def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=F
             return None
     else:
         psf = galfit.open_GALFIT_results(GALFIT_psf_filename, 'model')
-        
-    # Scaling up
-    psf = psf / psf.sum()
-    psf = psf * psf_flux
+
+    if sexdir:
+        if not os.path.isdir(sexdir):
+            os.makedir(sexdir)
+        psfFields_dir_1 = '%s/psfFields' % home_dir
+        psfFields_dir_2 = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
+        run = obj_line['run'].item()
+        rerun = obj_line['rerun'].item()
+        camcol = obj_line['camcol'].item()
+        field = obj_line['field'].item()
+        psfField = '%s/psField-%06d-%d-%04d.fit' % (psfFields_dir_1, run, camcol, field)
+        if not os.path.exists(psfField):
+            psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit' % (
+                psfFields_dir_1, rerun, run, camcol, run, camcol, field)
+        if not os.path.exists(psfField):
+            psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit' % (
+                psfFields_dir_2, rerun, run, camcol, run, camcol, field)
+        if not os.path.exists(psfField):
+            raise FileNotFoundError('No psfField fit found')
+
+        try:
+            nmgy_per_count = fits.getheader(psfField)['NMGY']
+        except KeyError:
+            nmgy_per_count = 0.0238446
+        field_data = fits.getdata(psfField)
+        hdu = fits.PrimaryHDU(sexdir+'field_ADU.fits')
+        hdu.writeto(field_data/nmgy_per_count)
+        hdu.close()
+        exptime = 53.9
+        threshold = 5
+        saturation_limit = 1500
+        gain = 4.73
+        pixel_scale = 0.396
+        fwhm = 1.4
+        zeropoint = calc_zeropoint(exptime, nmgy_per_count)
+        x_coordinates, y_coordinates, fluxes = SExtractor_get_stars(sexdir, 'field_ADU.fits', zeropoint, threshold, saturation_limit, gain, pixel_scale, fwhm)
+        xcrds = np.array(x_coordinates)
+        ycrds = np.array(y_coordinates)
+        fluxes = np.array(fluxes)*nmgy_per_count
+        #psf_flux is the flux the fake AGN must have (galaxy flux*cratio)
+        fluxdistances = fluxes - psf_flux
+        star_index = np.argmin(np.abs(fluxdistances))
+        scale_factor = psf_flux / starfluxes[star_index]
+        psf = scale_factor * crop_star(im, 2 * fwhm / pixel_scale, [xcrds[star_index], ycrds[star_index]])
+        files_to_delete = glob.glob(sexdir+'*')
+        for f in files_to_delete:
+            os.remove(f)
+    else:
+        # Scaling up
+        psf = psf / psf.sum()
+        psf = psf * psf_flux
     
     center = [original.shape[1] // 2, original.shape[0] // 2]
     centroid_galaxy = find_centroid(original)
@@ -134,10 +268,18 @@ def crop(img, cut):
     return img[size / 2 - cut:size / 2 + cut, size / 2 - cut:size / 2 + cut]
 
 
+def crop_star(img, cut, centroid):
+    return img[int(cc[1] - cut):int(cc[1] + cut + 1), int(cc[0] - cut):int(cc[0] + cut + 1)]
+
+
+
 def find_centroid(img, cut=5):
     center = (img.shape[1] // 2, img.shape[0] // 2)
     x_tmp, y_tmp = centroid_com(crop(img, cut))
     return [center[0] - cut + x_tmp, center[1] - cut + y_tmp]
+
+
+
 
 # def find_centroid(im, guesslist=np.zeros(2), b_size=0):
 #     '''
