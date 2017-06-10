@@ -4,7 +4,7 @@ import photometry
 import os
 import glob
 
-galfit_path = '~/galfit'
+galfit_path = '/mnt/ds3lab/dostark/galfit_binaries/galfit'
 
 
 def create_feedme_PSF(feedmefile, ifile, resultfile, ipath, platescale, centroid, imshape):

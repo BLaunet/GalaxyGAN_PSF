@@ -8,6 +8,7 @@ import galfit
 from config import Config as conf
 
 from shutil import copyfile
+import glob
 sex = 'sextractor'
 
 
@@ -15,7 +16,7 @@ def calc_zeropoint(exposure_time, calibration_factor):
     return 22.5 + 2.5 * np.log10(1. / exposure_time / calibration_factor)
 
 
-def SExtractor_get_stars(path, filename, magzero, threshold, saturation_level, gain, pixel_scale, fwhm):
+def SExtractor_get_stars(path, filename, magzero, threshold, saturation_level, gain, pixel_scale, fwhm, imageshape):
     file_res = open(path + 'sex_stars.conf', "w")
     file_res.write('#-------------------------------- Catalog ------------------------------------\n\n')
     file_res.write('CATALOG_NAME     sex_stars.cat        # name of the output catalog\n')
@@ -85,14 +86,14 @@ def SExtractor_get_stars(path, filename, magzero, threshold, saturation_level, g
     fluxes = np.array(data['flux'])
     star_class_data = np.array(data['classifier'])
     mask = (x_data >= 5 * fwhm / pixel_scale) & (y_data >= 5 * fwhm / pixel_scale) & (
-        x_data <= image.shape[1] - 5 * fwhm / pixel_scale) & (y_data <= image.shape[0] - 5 * fwhm / pixel_scale)
+        x_data <= imageshape[1] - 5 * fwhm / pixel_scale) & (y_data <= imageshape[0] - 5 * fwhm / pixel_scale)
     mask_negative = np.invert(mask)
     star_class_data[mask_negative] *= 0.0
-    starmask = star_class_data >= 0.95
+    starmask = star_class_data >= 0.8
     stars_xcoords = x_data[starmask]
     stars_ycoords = y_data[starmask]
     fluxes = fluxes[starmask]
-    return stars_xcoords, stars_ycoords, fluxes
+    return stars_xcoords, stars_ycoords, fluxes, np.max(star_class_data)>=0.8
 
 
 def generate_sdss_psf(obj_line, psf_filename):
@@ -134,7 +135,7 @@ def generate_sdss_psf(obj_line, psf_filename):
         print('colc = %s' % colc)
 
 
-def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=False, sexdir = None):
+def add_sdss_PSF(origpath, original, psf_flux, obj_line, whitenoise_var = None, multiple=False, sexdir = None):
     SDSS_psf_dir = '%s/psf/SDSS' % conf.run_case
     GALFIT_psf_dir = '%s/psf/GALFIT' % conf.run_case
     if not os.path.exists(SDSS_psf_dir):
@@ -158,31 +159,16 @@ def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=F
 
     if sexdir:
         if not os.path.isdir(sexdir):
-            os.makedir(sexdir)
-        psfFields_dir_1 = '%s/psfFields' % home_dir
-        psfFields_dir_2 = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
-        run = obj_line['run'].item()
-        rerun = obj_line['rerun'].item()
-        camcol = obj_line['camcol'].item()
-        field = obj_line['field'].item()
-        psfField = '%s/psField-%06d-%d-%04d.fit' % (psfFields_dir_1, run, camcol, field)
-        if not os.path.exists(psfField):
-            psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit' % (
-                psfFields_dir_1, rerun, run, camcol, run, camcol, field)
-        if not os.path.exists(psfField):
-            psfField = '%s/%d/%d/objcs/%d/psField-%06d-%d-%04d.fit' % (
-                psfFields_dir_2, rerun, run, camcol, run, camcol, field)
-        if not os.path.exists(psfField):
-            raise FileNotFoundError('No psfField fit found')
-
+            os.makedirs(sexdir)
         try:
-            nmgy_per_count = fits.getheader(psfField)['NMGY']
+            nmgy_per_count = fits.getheader(origpath)['NMGY']
         except KeyError:
             nmgy_per_count = 0.0238446
-        field_data = fits.getdata(psfField)
-        hdu = fits.PrimaryHDU(sexdir+'field_ADU.fits')
-        hdu.writeto(field_data/nmgy_per_count)
-        hdu.close()
+        #ideally field_data would be the field but we don't have the (huge) data on the sgs machines...
+        field_data = original
+        hdu_output = fits.PrimaryHDU(field_data/nmgy_per_count)
+        hdulist_output = fits.HDUList([hdu_output])
+        hdulist_output.writeto(sexdir+'field_ADU.fits', overwrite=True)
         exptime = 53.9
         threshold = 5
         saturation_limit = 1500
@@ -190,15 +176,18 @@ def add_sdss_PSF(original, psf_flux, obj_line, whitenoise_var = None, multiple=F
         pixel_scale = 0.396
         fwhm = 1.4
         zeropoint = calc_zeropoint(exptime, nmgy_per_count)
-        x_coordinates, y_coordinates, fluxes = SExtractor_get_stars(sexdir, 'field_ADU.fits', zeropoint, threshold, saturation_limit, gain, pixel_scale, fwhm)
+        x_coordinates, y_coordinates, fluxes, starboolean = SExtractor_get_stars(sexdir, 'field_ADU.fits', zeropoint, threshold, saturation_limit, gain, pixel_scale, fwhm, original.shape)
+        if not starboolean:
+            return None
         xcrds = np.array(x_coordinates)
         ycrds = np.array(y_coordinates)
         fluxes = np.array(fluxes)*nmgy_per_count
         #psf_flux is the flux the fake AGN must have (galaxy flux*cratio)
         fluxdistances = fluxes - psf_flux
         star_index = np.argmin(np.abs(fluxdistances))
-        scale_factor = psf_flux / starfluxes[star_index]
-        psf = scale_factor * crop_star(im, 2 * fwhm / pixel_scale, [xcrds[star_index], ycrds[star_index]])
+        scale_factor = psf_flux / fluxes[star_index]
+        crop_center = find_centroid(original, center=[xcrds[star_index], ycrds[star_index]])
+        psf = scale_factor * crop_star(original, 2 * fwhm / pixel_scale, crop_center)
         files_to_delete = glob.glob(sexdir+'*')
         for f in files_to_delete:
             os.remove(f)
@@ -268,14 +257,17 @@ def crop(img, cut):
     return img[size / 2 - cut:size / 2 + cut, size / 2 - cut:size / 2 + cut]
 
 
-def crop_star(img, cut, centroid):
+def crop_star(img, cut, cc):
     return img[int(cc[1] - cut):int(cc[1] + cut + 1), int(cc[0] - cut):int(cc[0] + cut + 1)]
 
 
 
-def find_centroid(img, cut=5):
-    center = (img.shape[1] // 2, img.shape[0] // 2)
-    x_tmp, y_tmp = centroid_com(crop(img, cut))
+def find_centroid(img, cut=5, center=None):
+    if not center:
+        center = (img.shape[1] // 2, img.shape[0] // 2)
+        x_tmp, y_tmp = centroid_com(crop(img, cut))
+    else:
+        x_tmp, y_tmp = centroid_com(crop_star(img, cut, center))
     return [center[0] - cut + x_tmp, center[1] - cut + y_tmp]
 
 
