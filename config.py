@@ -12,7 +12,7 @@ class Config:
     noise = 0
     filter_ = 'r'
     run_case = "/mnt/ds3lab/dostark/z_%s/%s-band" % (redshift, filter_)
-        # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
+    # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
     # Scaling
     if '0.01' in run_case:
         pixel_max_value = 41100
@@ -30,13 +30,12 @@ class Config:
 
     ## Directory Tree setup
     run_case = "/mnt/ds3lab/dostark/z_%s/%s-band" % (redshift, filter_)
-        # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
+    # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
     ext = ''
     if max_contrast_ratio != 10:
         ext += '_ratio_%s' % max_contrast_ratio
-    if noise !=0:
+    if noise != 0:
         ext += '_noise_%s' % noise
-    ext += '_test_new'
 
     stretch_setup = '%s/%s_%s%s' % (run_case, stretch_type, scale_factor, ext)
     sub_config = '%s/WGAN_%s' % (stretch_setup, attention_parameter)
@@ -49,7 +48,7 @@ class Config:
     ## GAN Parameters
     use_gpu = 0
     # if you are not going to train from the very beginning, change this path to the existing model path
-    model_path = '' # /mnt/ds3lab/dostark/z_0.1/r-band/pow_8_mcombined_stars/WGAN_0.05/model/model.ckpt  or  "/mnt/ds3lab/blaunet/results/%s/asinh_20/model/model.ckpt"%(model_to_use)
+    model_path = ''  # /mnt/ds3lab/dostark/z_0.1/r-band/pow_8_mcombined_stars/WGAN_0.05/model/model.ckpt  or  "/mnt/ds3lab/blaunet/results/%s/asinh_20/model/model.ckpt"%(model_to_use)
     start_epoch = 0
     save_per_epoch = 5
     max_epoch = 50
@@ -84,8 +83,6 @@ class Config:
         elif cls.stretch_type == 'sigmoid':
             return (1 / (1 + np.exp(-cls.scale_factor * np.sqrt(
                 (data - cls.pixel_min_value) / (cls.pixel_max_value - cls.pixel_min_value)))) - 1 / 2) * 2
-
-
         else:
             raise ValueError('Unknown stretch_type : %s' % cls.stretch_type)
 
