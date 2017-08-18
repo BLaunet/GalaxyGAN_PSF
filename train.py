@@ -46,6 +46,7 @@ def train():
     counter = 0
     start_time = time.time()
     out_dir = conf.result_path
+    filter_string = conf.filter_
     if not os.path.exists(conf.save_path):
         os.makedirs(conf.save_path)
     if not os.path.exists(out_dir):
@@ -85,7 +86,7 @@ def train():
 
                 test_data = data["test"]()
                 for img, cond, name in test_data:
-                    name = name.replace('-r.npy', '')
+                    name = name.replace('-'+filter_string+'.npy', '')
                     pimg, pcond = prepocess_test(img, cond)
                     gen_img = sess.run(model.gen_img, feed_dict={model.image: pimg, model.cond: pcond})
                     gen_img = gen_img.reshape(gen_img.shape[1:])
@@ -95,7 +96,7 @@ def train():
                     save_dir = '%s/epoch_%s/fits_output' % (out_dir, epoch + 1)
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
-                    filename = '%s/%s-r.fits' % (save_dir, name)
+                    filename = '%s/%s-%s.fits' % (save_dir, name, filter_string)
                     if os.path.exists(filename):
                         os.remove(filename)
                     hdu.writeto(filename)

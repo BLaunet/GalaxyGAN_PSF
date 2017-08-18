@@ -14,7 +14,8 @@ def extract_catalog():
     parser.add_argument("--zmax", default="0.206")
     parser.add_argument("--train_size", default="5000")
     parser.add_argument("--test_size", default = "100")
-
+    
+    filter_string = conf.filter_
     args = parser.parse_args()
 
     zmin = float(args.zmin)
@@ -41,7 +42,7 @@ def extract_catalog():
                                +'/'+new_catalog['camcol'].apply(str) \
                                +'/'+new_catalog['field'].apply(str) \
                                +'/'+new_catalog['dr7ObjID'].apply(str) \
-                               +'-r.fits'
+                               +'-%s.fits' % filter_string
     new_catalog = new_catalog[new_catalog['fits_path'].apply(os.path.exists)]
 
     if new_catalog.shape[0] < (train_size+test_size):

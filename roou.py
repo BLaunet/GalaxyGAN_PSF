@@ -34,6 +34,7 @@ def roou():
     parser.add_argument("--mode", default="1")
     parser.add_argument("--crop", default="0")
     parser.add_argument('--psf', default='sdss')
+    parser.add_argument('--mcombine', default='0')
     args = parser.parse_args()
 
     input = args.input
@@ -41,10 +42,12 @@ def roou():
     mode = int(args.mode)
     cropsize = int(args.crop)
     psf_type = args.psf
+    mcombine_int = int(args.mcombine)
+    mcombine_boolean = bool(mcombine_int)
 
     #Conf params
     #psf_noise = conf.noise  # sigma
-    psf_noise = 1
+    psf_noise = 0
     ratio_max = conf.max_contrast_ratio
 
     if mode == 1: #Test set
@@ -69,13 +72,19 @@ def roou():
         os.makedirs(raw_test_folder)
 
     # fits_path = '%s/*-r.fits.bz2'%(input)
-    fits_path = '%s/*-r.fits' % (input)
+    filter_string = conf.filter_
+    fits_path = '%s/*-%s.fits' % (input, filter_string)
     files = glob.glob(fits_path)
 
     not_found = 0
+    if os.path.isfile('/mnt/ds3lab/dostark; rm count_stars.csv'):
+                os.system('cd /mnt/ds3lab/dostark; rm count_stars.csv')
+    file_res = open('/mnt/ds3lab/dostark/count_stars.csv', "w")
+    file_res.write('objid,number of combined stars \n')
+    file_res.close()
     for i in files:
         # image_id = os.path.basename(i).replace("-r.fits.bz2", '')
-        image_id = os.path.basename(i).replace('-r.fits', '')
+        image_id = os.path.basename(i).replace('-'+filter_string+'.fits', '')
         print('\n')
         print(image_id)
 
@@ -122,7 +131,11 @@ def roou():
 
         elif psf_type == 'sdss':
             tmpdir = '/mnt/ds3lab/dostark/tmp_for_SExtractor/'
-            data_PSF = photometry.add_sdss_PSF(i, data_r, r * flux, obj_line, whitenoise_var=whitenoise_var, sexdir=tmpdir)
+            if mcombine_boolean:
+                data_PSF = photometry.add_sdss_PSF(i, data_r, r * flux, obj_line, whitenoise_var=whitenoise_var, sexdir=tmpdir, median_combine=True)
+            elif mcombine_boolean == False:
+                data_PSF = photometry.add_sdss_PSF(i, data_r, r * flux, obj_line, whitenoise_var=whitenoise_var, sexdir=tmpdir)
+                #data_PSF = photometry.add_sdss_PSF(i, data_r, r * flux, obj_line)
             if data_PSF is None:
                 print('Ignoring file %s' % i)
                 continue
@@ -144,7 +157,7 @@ def roou():
         # Saving the "raw" data+PSF before stretching
         saving_orig = True
         if mode and saving_orig:
-            raw_name = '%s/%s-r.fits' % (raw_test_folder, image_id)
+            raw_name = '%s/%s-%s.fits' % (raw_test_folder, image_id, filter_string)
             if os.path.exists(raw_name):
                 os.remove(raw_name)
             hdu = fits.PrimaryHDU(data_PSF)
@@ -175,10 +188,10 @@ def roou():
         figure_combined[:, figure_original.shape[1]:2 * figure_original.shape[1], :] = figure_with_PSF[:, :, :]
 
         if mode:
-            mat_path = '%s/test/%s-r.npy' % (output, image_id)
+            mat_path = '%s/test/%s-%s.npy' % (output, image_id, filter_string)
             # np.save('%s/%s-r.npy'%(GAN_input_path,image_id), figure_combined)
         else:
-            mat_path = '%s/train/%s-r.npy' % (output, image_id)
+            mat_path = '%s/train/%s-%s.npy' % (output, image_id, filter_string)
         np.save(mat_path, figure_combined)
     print("%s images have not been used because there were no corresponding objects in the catalog" % not_found)
 

@@ -12,9 +12,10 @@ parser = argparse.ArgumentParser()
 
 
 def download_psfField(catalog):
+    filter_string = conf.filter_
     download_main_dir = 'https://dr13.sdss.org/sas/dr13/env/PHOTO_REDUX'
     psfFields_dir = '/mnt/ds3lab/galaxian/source/sdss/dr12/psf-data'
-    save_dir = '/mnt/ds3lab/blaunet/psfFields'
+    save_dir = '/mnt/ds3lab/dostark/psfFields/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
