@@ -33,7 +33,7 @@ def roou():
     parser.add_argument("--output", default=conf.data_path)
     parser.add_argument("--mode", default="1")
     parser.add_argument("--crop", default="0")
-    parser.add_argument('--psf', default='sdss')
+    parser.add_argument('--psf', default='star')
     parser.add_argument('--mcombine', default='0')
     args = parser.parse_args()
 
@@ -49,7 +49,6 @@ def roou():
     #psf_noise = conf.noise  # sigma
     psf_noise = 0
     ratio_max = conf.max_contrast_ratio
-
     if mode == 1: #Test set
         input = '%s/fits_test' % conf.run_case
         catalog_path = glob.glob('%s/catalog_test*' % conf.run_case)[0]
@@ -77,11 +76,6 @@ def roou():
     files = glob.glob(fits_path)
 
     not_found = 0
-    if os.path.isfile('/mnt/ds3lab/dostark; rm count_stars.csv'):
-                os.system('cd /mnt/ds3lab/dostark; rm count_stars.csv')
-    file_res = open('/mnt/ds3lab/dostark/count_stars.csv', "w")
-    file_res.write('objid,number of combined stars \n')
-    file_res.close()
     for i in files:
         # image_id = os.path.basename(i).replace("-r.fits.bz2", '')
         image_id = os.path.basename(i).replace('-'+filter_string+'.fits', '')
@@ -130,7 +124,7 @@ def roou():
             data_PSF = photometry.add_gaussian_PSF(data_r, r * flux, gaussian_sigma)
 
         elif psf_type == 'sdss':
-            tmpdir = '/mnt/ds3lab/dostark/tmp_for_SExtractor/'
+            tmpdir = '/mnt/ds3lab/blaunet/tmp_for_SExtractor/'
             if mcombine_boolean:
                 data_PSF = photometry.add_sdss_PSF(i, data_r, r * flux, obj_line, whitenoise_var=whitenoise_var, sexdir=tmpdir, median_combine=True)
             elif mcombine_boolean == False:
@@ -139,6 +133,9 @@ def roou():
             if data_PSF is None:
                 print('Ignoring file %s' % i)
                 continue
+        elif psf_type == 'star':
+            tmpdir = '/mnt/ds3lab/blaunet/tmp_for_SExtractor/'
+            data_PSF = photometry.add_star_PSF(i, data_r, r * flux, obj_line, whitenoise_var=whitenoise_var, sexdir=tmpdir, median_combine=True)
 
         else:
             print('Unknown psf type : %s' % psf_type)

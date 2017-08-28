@@ -11,7 +11,7 @@ class Config:
     max_contrast_ratio = 10
     noise = 0
     filter_ = 'r'
-    run_case = "/mnt/ds3lab/dostark/z_%s/%s-band" % (redshift, filter_)
+    run_case = "/mnt/ds3lab/blaunet/results/z_%s" % (redshift)
     # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
     # Scaling
     if '0.01' in run_case:
@@ -29,7 +29,7 @@ class Config:
     pixel_min_value = -0.1
 
     ## Directory Tree setup
-    run_case = "/mnt/ds3lab/dostark/z_%s/%s-band" % (redshift, filter_)
+    #run_case = "/mnt/ds3lab/dostark/z_%s/%s-band" % (redshift, filter_)
     # run_case = "/mnt/ds3lab/blaunet/results/darg_late_stage"
     ext = ''
     if max_contrast_ratio != 10:

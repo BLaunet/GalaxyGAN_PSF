@@ -118,7 +118,8 @@ def SExtractor_get_stars(path, filename, magzero, threshold, saturation_level, g
 
 
 def get_field(obj_line):
-    core_path = '/mnt/ds3lab/dostark/galaxian/source/sdss/dr12/plates/'
+    #do_core_path = '/mnt/ds3lab/dostark/galaxian/source/sdss/dr12/plates/'
+    core_path = '/mnt/ds3lab/blaunet/galaxian/source/sdss/dr12/plates/'
     filter_string = conf.filter_
     run = obj_line['run'].item()
     rerun = obj_line['rerun'].item()
@@ -128,7 +129,7 @@ def get_field(obj_line):
 
     if not os.path.isfile('%s%s/sdss%s_dr12_%s-%s.fits.bz2' % (core_path, relative_path, filter_string, run, field)):
         os.system(
-            'cd %s; rsync --relative -avzh dostark@plompy.ethz.ch:/home/galaxian/source/sdss/dr12/plates/./%s/sdss%s_dr12_%s-%s.fits.bz2 .' % (
+            'cd %s; rsync --relative -avzh blaunet@plompy.ethz.ch:/home/galaxian/source/sdss/dr12/plates/./%s/sdss%s_dr12_%s-%s.fits.bz2 .' % (
             core_path, relative_path, filter_string, run, field))
     os.system('cd %s%s; bzip2 -dk sdss%s_dr12_%s-%s.fits.bz2' % (core_path, relative_path, filter_string, run, field))
     try:
@@ -156,7 +157,7 @@ def add_star_PSF(origpath, original, psf_flux, obj_line, whitenoise_var=None, mu
     # ideally field_data would be the field but we don't have the (huge) data on the sgs machines...
     # field_data = original
     field_data = get_field(obj_line)
-    if not field_data:
+    if field_data is None:
         return None
     hdu_output = fits.PrimaryHDU(field_data / nmgy_per_count)
     hdulist_output = fits.HDUList([hdu_output])
@@ -267,5 +268,5 @@ def get_semiempirical_param(data, x_icords, y_icords, cutout_size, fwhm_pix, obj
         x_std.append(gauss_2Dmodel.x_stddev)
         y_std.append(gauss_2Dmodel.y_stddev)
     x_sigma = sum([x_std[i]*weights[i] for i in range(len(x_std))]) / sum(weights)
-    y_sigma = sum([y_std[i]*weights[i] for i in range(len(y_std))]) / sum(weights.sum())
+    y_sigma = sum([y_std[i]*weights[i] for i in range(len(y_std))]) / sum(weights)
     return [x_sigma, y_sigma]
